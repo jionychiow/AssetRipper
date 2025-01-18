@@ -313,25 +313,134 @@ namespace AssetRipper.Import.Structure.Assembly.Serializable
 
 		public readonly ref SerializableValue this[string name] => ref AsStructure[name];
 
+		private static string ReadNaninovelString(ref EndianSpanReader reader, bool isConfigField = false)
+		{
+			try
+			{
+				// 读取总长度
+				int totalLength = reader.ReadInt32();
+				if (totalLength <= 0 || totalLength > 32768) // 添加合理的长度限制
+				{
+					return string.Empty;
+				}
+
+				// 记录起始位置
+				int startPosition = (int)reader.Position;
+				
+				// 读取第一个字节来判断类型
+				byte firstByte = reader.ReadByte();
+				
+				// 如果是字符串类型标记(0x00或0x01)
+				if (firstByte == 0x00 || firstByte == 0x01)
+				{
+					// 读取实际字符串长度
+					int stringLength = reader.ReadInt32();
+					if (stringLength > 0 && stringLength < totalLength)
+					{
+						// 读取实际内容
+						byte[] stringBytes = reader.ReadBytes(stringLength);
+						// 跳过剩余字节
+						reader.Position = startPosition + totalLength;
+						
+						// 转换为字符串，去除尾部的null字符
+						return System.Text.Encoding.UTF8.GetString(stringBytes).TrimEnd('\0');
+					}
+				}
+				else
+				{
+					// 回到内容开始处
+					reader.Position = startPosition;
+					
+					// 读取所有内容
+					byte[] allBytes = reader.ReadBytes(totalLength);
+					
+					// 查找第一个非0字节
+					int contentStart = 0;
+					while (contentStart < allBytes.Length && allBytes[contentStart] == 0)
+					{
+						contentStart++;
+					}
+					
+					// 查找内容结束位置（第一个0字节）
+					int contentEnd = contentStart;
+					while (contentEnd < allBytes.Length && allBytes[contentEnd] != 0)
+					{
+						contentEnd++;
+					}
+					
+					if (contentEnd > contentStart)
+					{
+						return System.Text.Encoding.UTF8.GetString(allBytes, contentStart, contentEnd - contentStart);
+					}
+				}
+
+				return string.Empty;
+			}
+			catch
+			{
+				return string.Empty;
+			}
+		}
+
 		public void Read(ref EndianSpanReader reader, UnityVersion version, TransferInstructionFlags flags, int depth, in SerializableType.Field etalon)
 		{
 			try
 			{
 				// 检查是否为Naninovel类型
-				if (etalon.Type.Namespace?.Contains("Naninovel") == true)
+				bool isNaninovelType = etalon.Type.Namespace?.Contains("Naninovel") == true;
+				bool isConfigField = IsConfigField(etalon.Name);
+				bool isNaninovelString = isNaninovelType && 
+					(etalon.Type.Type == PrimitiveType.String || isConfigField || IsNaninovelConfigType(etalon.Type.Name));
+
+				// 对于Naninovel的字符串类型或配置字段，使用特殊处理
+				if (isNaninovelString)
 				{
-					// 对于Naninovel类型，总是尝试作为字符串读取
 					try
 					{
+						int originalPosition = (int)reader.Position;
+						string value = ReadNaninovelString(ref reader, isConfigField);
+
+						// 如果读取失败且是特殊字段，尝试直接读取
+						if (string.IsNullOrEmpty(value))
+						{
+							reader.Position = originalPosition;
+							if (etalon.Name.Contains("Command") || etalon.Name.Contains("Type"))
+							{
+								value = reader.ReadUtf8StringAligned().String;
+							}
+						}
+
+						AsString = value;
+
+						if (etalon.Align)
+						{
+							reader.Align();
+						}
+						return;
+					}
+					catch
+					{
+						AsString = string.Empty;
+						return;
+					}
+				}
+
+				// 其他Naninovel类型的处理
+				if (isNaninovelType)
+				{
+					try
+					{
+						// 首先尝试作为字符串读取
 						AsString = reader.ReadUtf8StringAligned().String;
 						return;
 					}
 					catch
 					{
-						// 如果作为字符串读取失败，继续尝试标准读取
+						// 如果字符串读取失败，继续尝试标准读取
 					}
 				}
 
+				// 标准读取逻辑
 				switch (etalon.ArrayDepth)
 				{
 					case 0:
@@ -573,7 +682,6 @@ namespace AssetRipper.Import.Structure.Assembly.Serializable
 			{
 				if (etalon.Type.Namespace?.Contains("Naninovel") == true)
 				{
-					// 对于Naninovel类型的错误，设置为空字符串并继续
 					AsString = string.Empty;
 					return;
 				}
@@ -1306,6 +1414,73 @@ namespace AssetRipper.Import.Structure.Assembly.Serializable
 					walker.ExitDictionary(this);
 				}
 			}
+		}
+
+		private static bool IsNaninovelConfigType(string? typeName)
+		{
+			if (string.IsNullOrEmpty(typeName))
+				return false;
+
+			string[] configTypes = new[]
+			{
+				"AudioConfiguration",
+				"LocalizationConfiguration",
+				"ManagedTextConfiguration",
+				"MoviesConfiguration",
+				"ResourceProviderConfiguration",
+				"ScriptPlayerConfiguration",
+				"ScriptsConfiguration",
+				"SpawnConfiguration",
+				"StateConfiguration",
+				"TextPrintersConfiguration",
+				"UIConfiguration",
+				"CharactersConfiguration",
+				"BackgroundsConfiguration",
+				"InputConfiguration",
+				"EngineConfiguration",
+				"CustomConfiguration"
+			};
+
+			return configTypes.Any(t => typeName.Contains(t, StringComparison.OrdinalIgnoreCase));
+		}
+
+		private static bool IsConfigField(string fieldName)
+		{
+			if (string.IsNullOrEmpty(fieldName))
+				return false;
+
+			string[] configFields = new[]
+			{
+				// Audio相关
+				"AudioPlayer", "VoiceLocales", "MasterVolumeHandleName", "BgmGroupPath",
+				"BgmVolumeHandleName", "SfxGroupPath", "SfxVolumeHandleName", "VoiceGroupPath", 
+				"VoiceVolumeHandleName", "DefaultMasterVolume", "DefaultBgmVolume", 
+				"DefaultSfxVolume", "DefaultVoiceVolume", "EnableAutoVoicing", "AutoVoiceMode",
+				"AudioLoader", "CustomAudioLoader", "AudioPlayer", "CustomAudioPlayer",
+
+				// Localization相关
+				"DefaultLocale", "SourceLocale", "LocalesPath", "Locale",
+
+				// Movies相关
+				"IntroMovieName", "MoviePlayer", "CustomMoviePlayer",
+
+				// Scripts相关
+				"InitializationScript", "TitleScript", "StartGameScript", "WatchedDirectory",
+				"GraphOrientation", "ScriptParser", "CustomScriptParser", "ScriptLoader",
+				"CustomScriptLoader",
+
+				// UI相关
+				"FontName", "DefaultFont", "DefaultStyle", "DefaultUIPath", "FontLoader",
+				"CustomFontLoader",
+
+				// 其他配置字段
+				"ResourcesPath", "ProjectPath", "LoadingScreen", "TitleScreen", "ExternalLoader",
+				"CustomExternalLoader", "EnableBuildProcessing", "AutoSaveEnabled",
+				"SaveFolder", "DefaultEasing", "ShowDebugOnError", "DefaultMetadata",
+				"EnableStateRollback", "StateRollbackSteps"
+			};
+
+			return configFields.Contains(fieldName);
 		}
 	}
 }

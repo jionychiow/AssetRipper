@@ -71,8 +71,41 @@ namespace AssetRipper.Export.UnityProjects.Scripts
 			};
 		}
 
+		private bool IsPluginAssembly(string assemblyName)
+		{
+			// 检查是否为插件程序集
+			if (string.IsNullOrEmpty(assemblyName))
+				return false;
+
+			// 常见的插件程序集命名模式
+			string[] pluginPatterns = new[]
+			{
+				"Assembly-CSharp-firstpass",
+				".Plugins.",
+				".Plugin.",
+				"_Plugin",
+				".Runtime",
+				".Editor",
+				"UnityEngine.",
+				"Unity.",
+				"Naninovel",
+				"DOTween",
+				"Newtonsoft.Json",
+				"System.",
+				"Microsoft."
+			};
+
+			return pluginPatterns.Any(pattern => assemblyName.Contains(pattern, StringComparison.OrdinalIgnoreCase));
+		}
+
 		public AssemblyExportType GetExportType(string assemblyName)
 		{
+			// 对于插件程序集，总是反编译
+			if (IsPluginAssembly(assemblyName))
+			{
+				return AssemblyExportType.Decompile;
+			}
+
 			if (ReferenceAssemblies.IsReferenceAssembly(assemblyName))
 			{
 				return AssemblyExportType.Skip;

@@ -19,9 +19,11 @@ namespace AssetRipper.Import.Structure.Assembly.Managers
 			{
 				try
 				{
-					if (assemblyName.Contains("Naninovel"))
+					bool isPlugin = IsPluginAssembly(assemblyName);
+					
+					if (isPlugin)
 					{
-						Logger.Info(LogCategory.Import, $"Loading Naninovel assembly: {assemblyName}");
+						Logger.Info(LogCategory.Import, $"Loading plugin assembly: {assemblyName}");
 						Load(assemblyPath);
 						continue;
 					}
@@ -40,6 +42,31 @@ namespace AssetRipper.Import.Structure.Assembly.Managers
 					Logger.Info(LogCategory.Import, $"Skipping non-PE file: {assemblyName}");
 				}
 			}
+		}
+
+		private bool IsPluginAssembly(string assemblyName)
+		{
+			if (string.IsNullOrEmpty(assemblyName))
+				return false;
+
+			string[] pluginPatterns = new[]
+			{
+				"Assembly-CSharp-firstpass",
+				".Plugins.",
+				".Plugin.",
+				"_Plugin",
+				".Runtime",
+				".Editor",
+				"UnityEngine.",
+				"Unity.",
+				"Naninovel",
+				"DOTween",
+				"Newtonsoft.Json",
+				"System.",
+				"Microsoft."
+			};
+
+			return pluginPatterns.Any(pattern => assemblyName.Contains(pattern, StringComparison.OrdinalIgnoreCase));
 		}
 
 		public static bool IsMonoAssembly(string fileName)
