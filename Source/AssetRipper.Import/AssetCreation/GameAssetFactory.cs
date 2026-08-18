@@ -80,7 +80,7 @@ public sealed class GameAssetFactory : AssetFactoryBase
 				{
 					ReadOnlyArraySegment<byte> structData = assetData.Slice(reader.Position);
 					SerializeReferenceDataCache.Store(monoBehaviour, structData.ToArray(), monoBehaviour.Collection.EndianType);
-					Logger.Warning(LogCategory.Import, $"MonoBehaviour '{monoBehaviour.GetBestName()}' (PathID={monoBehaviour.PathID}) has [SerializeReference] fields; cached {structData.Count} bytes for Naninovel export.");
+					Logger.Info(LogCategory.Import, $"MonoBehaviour '{monoBehaviour.GetBestName()}' (PathID={monoBehaviour.PathID}) has [SerializeReference] fields; cached {structData.Count} bytes for Naninovel export.");
 					monoBehaviour.Structure = new UnloadedStructure(monoBehaviour, assemblyManager, structData);
 				}
 				else if (structure.TryRead(ref reader, monoBehaviour))

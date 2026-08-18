@@ -59,6 +59,20 @@ public sealed class CommandAliasMap
 		aliasMap["FinishSceneTransition"] = "finishTrans";
 		aliasMap["AutoSave"] = "save";
 		aliasMap["ExitToTitle"] = "title";
+		aliasMap["ProcessInput"] = "processInput";
+		aliasMap["ClearBacklog"] = "clearBacklog";
+		aliasMap["PurgeRollback"] = "purgeRollback";
+		aliasMap["ResetText"] = "resetText";
+		aliasMap["Lock"] = "lock";
+		aliasMap["Unlock"] = "unlock";
+		aliasMap["ResetState"] = "resetState";
+		aliasMap["LoadScene"] = "loadScene";
+		aliasMap["LipSync"] = "lipSync";
+		aliasMap["AddItem"] = "addItem";
+		aliasMap["RemoveItem"] = "removeItem";
+		aliasMap["RemoveItemAt"] = "removeItemAt";
+		aliasMap["UseItem"] = "useItem";
+		aliasMap["RemoveAllItems"] = "removeAllItems";
 	}
 
 	public string? GetAlias(string className)

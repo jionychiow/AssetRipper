@@ -445,6 +445,28 @@ public sealed class NaniTypeLayoutTable
 		AddCommand("Comment", new());
 		AddCommand("Label", new());
 		AddCommand("Empty", new());
+
+		AddCommand("AddItem", new()
+		{
+			new("ItemId", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("SlotId", NaniFieldType.CommandParameter, "SlotId", "IntegerParameter"),
+			new("Amount", NaniFieldType.CommandParameter, "Amount", "IntegerParameter"),
+		});
+		AddCommand("RemoveItem", new()
+		{
+			new("ItemId", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Amount", NaniFieldType.CommandParameter, "Amount", "IntegerParameter"),
+		});
+		AddCommand("RemoveItemAt", new()
+		{
+			new("SlotId", NaniFieldType.CommandParameter, "", "IntegerParameter"),
+			new("Amount", NaniFieldType.CommandParameter, "Amount", "IntegerParameter"),
+		});
+		AddCommand("UseItem", new()
+		{
+			new("ItemId", NaniFieldType.CommandParameter, "", "StringParameter"),
+		});
+		AddCommand("RemoveAllItems", new());
 	}
 
 	private void AddCommand(string className, List<NaniTypeField> derivedFields)
