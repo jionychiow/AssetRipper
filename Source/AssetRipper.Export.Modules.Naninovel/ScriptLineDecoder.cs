@@ -76,12 +76,19 @@ public sealed class ScriptLineDecoder
 		}
 
 		StringBuilder textBuilder = new();
+		bool first = true;
 		foreach (long rid in inlinedRids)
 		{
 			if (!referenceMap.TryGetValue(rid, out NaniManagedReference? cmdRef))
 			{
 				continue;
 			}
+
+			if (!first)
+			{
+				textBuilder.Append('\n');
+			}
+			first = false;
 
 			if (cmdRef.Class == "PrintText")
 			{
@@ -103,7 +110,7 @@ public sealed class ScriptLineDecoder
 			else
 			{
 				string commandText = commandDecoder.Decode(cmdRef);
-				textBuilder.Append($"[{commandText}]");
+				textBuilder.Append($"@{commandText}");
 			}
 		}
 
