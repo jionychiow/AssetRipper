@@ -78,8 +78,10 @@ public sealed class GameAssetFactory : AssetFactoryBase
 				structure = SerializableTreeType.FromRootNode(rootNode, true).CreateSerializableStructure();
 				if (structure.Type.Fields.Count > 0 && structure.Type.Fields[^1] is { Type.Name: "ManagedReferencesRegistry", Name: "references" })
 				{
-					Logger.Error(LogCategory.Import, $"MonoBehaviour has a field with the [SerializeReference] attribute, which is not currently supported.");
-					monoBehaviour.Structure = null;
+					ReadOnlyArraySegment<byte> structData = assetData.Slice(reader.Position);
+					SerializeReferenceDataCache.Store(monoBehaviour, structData.ToArray(), monoBehaviour.Collection.EndianType);
+					Logger.Warning(LogCategory.Import, $"MonoBehaviour '{monoBehaviour.GetBestName()}' (PathID={monoBehaviour.PathID}) has [SerializeReference] fields; cached {structData.Count} bytes for Naninovel export.");
+					monoBehaviour.Structure = new UnloadedStructure(monoBehaviour, assemblyManager, structData);
 				}
 				else if (structure.TryRead(ref reader, monoBehaviour))
 				{
@@ -87,12 +89,18 @@ public sealed class GameAssetFactory : AssetFactoryBase
 				}
 				else
 				{
+					ReadOnlyArraySegment<byte> structData = assetData.Slice(reader.Position);
+					SerializeReferenceDataCache.Store(monoBehaviour, structData.ToArray(), monoBehaviour.Collection.EndianType);
+					Logger.Warning(LogCategory.Import, $"MonoBehaviour '{monoBehaviour.GetBestName()}' (PathID={monoBehaviour.PathID}) failed to read structure; cached {structData.Count} bytes as fallback.");
 					monoBehaviour.Structure = null;
 				}
 			}
 			else
 			{
-				monoBehaviour.Structure = new UnloadedStructure(monoBehaviour, assemblyManager, assetData.Slice(reader.Position));
+				ReadOnlyArraySegment<byte> structData = assetData.Slice(reader.Position);
+				SerializeReferenceDataCache.Store(monoBehaviour, structData.ToArray(), monoBehaviour.Collection.EndianType);
+				Logger.Info(LogCategory.Import, $"MonoBehaviour '{monoBehaviour.GetBestName()}' (PathID={monoBehaviour.PathID}) has no type tree; cached {structData.Count} bytes as fallback.");
+				monoBehaviour.Structure = new UnloadedStructure(monoBehaviour, assemblyManager, structData);
 			}
 		}
 		catch (Exception ex)

@@ -6,6 +6,7 @@ using AssetRipper.Export.UnityProjects.AudioMixers;
 using AssetRipper.Export.UnityProjects.DeletedAssets;
 using AssetRipper.Export.UnityProjects.EngineAssets;
 using AssetRipper.Export.UnityProjects.Miscellaneous;
+using AssetRipper.Export.UnityProjects.Naninovel;
 using AssetRipper.Export.UnityProjects.Project;
 using AssetRipper.Export.UnityProjects.RawAssets;
 using AssetRipper.Export.UnityProjects.Scripts;
@@ -67,6 +68,7 @@ partial class ProjectExporter
 		OverrideExporter<TypeTreeObject>(managerExporter, true);
 
 		OverrideExporter<IMonoBehaviour>(new ScriptableObjectExporter(), true);
+		OverrideExporter<IMonoBehaviour>(new NaninovelScriptExporter(), true);
 
 		SceneYamlExporter sceneExporter = new();
 		OverrideExporter<IPrefabInstance>(sceneExporter, true);
