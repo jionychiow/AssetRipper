@@ -1,5 +1,6 @@
 ﻿namespace UnityEngine.Rendering;
 
+#pragma warning disable CS0169
 public struct SphericalHarmonicsL2
 {
 	private float shr0;
@@ -56,3 +57,4 @@ public struct SphericalHarmonicsL2
 
 	private float shb8;
 }
+#pragma warning restore CS0169

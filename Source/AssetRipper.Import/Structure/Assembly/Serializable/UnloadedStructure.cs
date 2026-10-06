@@ -66,6 +66,9 @@ public sealed class UnloadedStructure : UnityAssetBase, IDeepCloneable
 	public SerializableStructure? LoadStructure()
 	{
 		ThrowIfNotStructure();
+		string scriptFullName = MonoBehaviour.ScriptP?.GetFullName() ?? "Unknown";
+		long pathID = MonoBehaviour.PathID;
+
 		string? failureReason = null;
 		SerializableStructure? structure = MonoBehaviour.ScriptP?.GetBehaviourType(AssemblyManager, out failureReason)?.CreateSerializableStructure();
 		if (structure is not null)
@@ -74,21 +77,45 @@ public sealed class UnloadedStructure : UnityAssetBase, IDeepCloneable
 			if (structure.TryRead(ref reader, MonoBehaviour))
 			{
 				MonoBehaviour.Structure = structure;
+				LayoutFixStatistics.RecordDecision(LayoutFixDecision.ReflectionSuccess, pathID, scriptFullName);
 				return structure;
 			}
+			EndianSpanReader retryReader = new EndianSpanReader(StructureData, MonoBehaviour.Collection.EndianType);
+			if (structure.TryRead(ref retryReader, MonoBehaviour, true))
+			{
+				Logger.Info(LogCategory.Import, $"Read MonoBehaviour structure for `{scriptFullName}` with {retryReader.Length - retryReader.Position} remaining bytes (managed references registry).");
+				MonoBehaviour.Structure = structure;
+				LayoutFixStatistics.RecordDecision(LayoutFixDecision.ReflectionSuccess, pathID, scriptFullName);
+				return structure;
+			}
+			Logger.Warning(LogCategory.Import, $"Failed to read MonoBehaviour structure for `{scriptFullName}`. Falling back to degraded export.");
+			LayoutFixStatistics.RecordDecision(LayoutFixDecision.DegradedExport, pathID, scriptFullName, "TryRead failed");
 		}
-		else if (failureReason is not null)
+		else
 		{
-			Logger.Warning(LogCategory.Import, $"Could not read MonoBehaviour structure for `{MonoBehaviour.ScriptP?.GetFullName()}`. Reason: {failureReason}");
+			if (failureReason is not null)
+			{
+				Logger.Warning(LogCategory.Import, $"Could not read MonoBehaviour structure for `{scriptFullName}`. Reason: {failureReason}");
+			}
+			LayoutFixStatistics.RecordDecision(LayoutFixDecision.DegradedExport, pathID, scriptFullName, failureReason ?? "GetBehaviourType returned null");
+		}
+
+		if (StructureData.Count > 0)
+		{
+			FallbackStructureAsset fallbackAsset = new FallbackStructureAsset(StructureData.ToArray(), MonoBehaviour.Collection.EndianType, scriptFullName);
+			MonoBehaviour.Structure = fallbackAsset;
+			return null;
 		}
 
 		MonoBehaviour.Structure = null;
+		LayoutFixStatistics.RecordDecision(LayoutFixDecision.TotalFailure, pathID, scriptFullName, "No structure data");
 		return null;
 	}
 
 	private UnityAssetBase LoadStructureOrStatelessAsset()
 	{
-		return (UnityAssetBase?)LoadStructure() ?? StatelessAsset.Instance;
+		LoadStructure();
+		return (UnityAssetBase?)MonoBehaviour.Structure ?? StatelessAsset.Instance;
 	}
 
 	public IUnityAssetBase DeepClone(PPtrConverter converter)

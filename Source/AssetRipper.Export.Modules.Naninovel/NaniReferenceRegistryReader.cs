@@ -286,6 +286,7 @@ public sealed class NaniReferenceRegistryReader
 		bool nbVal = ReadAlignedBoolean(ref reader);
 		bool nbValHas = ReadAlignedBoolean(ref reader);
 		param.NamedName = nbNameHas ? nbName : null;
+		param.NamedValue = nbValHas ? (nbVal ? "true" : "false") : null;
 		param.NamedValueHasValue = nbValHas;
 		param.HasValue = ReadAlignedBoolean(ref reader);
 		ReadDynamicValue(ref reader, param);
@@ -298,12 +299,20 @@ public sealed class NaniReferenceRegistryReader
 		List<string> ndlItems = new(ndlSize);
 		for (int i = 0; i < ndlSize; i++)
 		{
-			ReadLengthPrefixedString(ref reader);
-			ReadAlignedBoolean(ref reader);
+			string ndlName = ReadLengthPrefixedString(ref reader);
+			bool ndlNameHas = ReadAlignedBoolean(ref reader);
 			float ndlVal = reader.ReadSingle();
 			bool ndlValHas = ReadAlignedBoolean(ref reader);
 			ReadAlignedBoolean(ref reader);
-			ndlItems.Add(ndlValHas ? ndlVal.ToString() : null!);
+			if (ndlNameHas)
+			{
+				string valStr = ndlValHas ? ndlVal.ToString() : string.Empty;
+				ndlItems.Add($"{ndlName}.{valStr}");
+			}
+			else
+			{
+				ndlItems.Add(ndlValHas ? ndlVal.ToString() : null!);
+			}
 		}
 		param.Value = ndlItems;
 		param.HasValue = ReadAlignedBoolean(ref reader);
@@ -317,11 +326,20 @@ public sealed class NaniReferenceRegistryReader
 		List<string> nblItems = new(nblSize);
 		for (int i = 0; i < nblSize; i++)
 		{
-			ReadLengthPrefixedString(ref reader);
+			string nblName = ReadLengthPrefixedString(ref reader);
+			bool nblNameHas = ReadAlignedBoolean(ref reader);
+			bool nblVal = ReadAlignedBoolean(ref reader);
+			bool nblValHas = ReadAlignedBoolean(ref reader);
 			ReadAlignedBoolean(ref reader);
-			ReadAlignedBoolean(ref reader);
-			ReadAlignedBoolean(ref reader);
-			ReadAlignedBoolean(ref reader);
+			if (nblNameHas)
+			{
+				string valStr = nblValHas ? (nblVal ? "true" : "false") : string.Empty;
+				nblItems.Add($"{nblName}.{valStr}");
+			}
+			else
+			{
+				nblItems.Add(string.Empty);
+			}
 		}
 		param.Value = nblItems;
 		param.HasValue = ReadAlignedBoolean(ref reader);

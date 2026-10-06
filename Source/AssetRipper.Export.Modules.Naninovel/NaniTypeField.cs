@@ -9,6 +9,7 @@ public sealed class NaniTypeField
 	public int ArrayDepth { get; set; }
 	public string ParameterAlias { get; set; } = string.Empty;
 	public string ParameterSubType { get; set; } = string.Empty;
+	public bool IsRequired { get; set; }
 
 	public NaniTypeField() { }
 

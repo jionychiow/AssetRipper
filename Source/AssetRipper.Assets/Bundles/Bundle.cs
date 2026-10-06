@@ -210,6 +210,7 @@ public abstract class Bundle : IDisposable
 				?? currentBundle.ResolveExternalResource(originalName);
 			if (result is not null)
 			{
+
 				return result;
 			}
 
@@ -235,6 +236,48 @@ public abstract class Bundle : IDisposable
 					return resource;
 				}
 			}
+
+			if (fixedName == "resources.resource")
+			{
+				foreach (ResourceFile resource in currentBundle.Resources)
+				{
+					if (resource.NameFixed == "resources.assets.ress")
+					{
+						return resource;
+					}
+				}
+			}
+
+			if (fixedName == "resources.assets.ress")
+			{
+				foreach (ResourceFile resource in currentBundle.Resources)
+				{
+					if (resource.NameFixed == "resources.resource")
+					{
+						return resource;
+					}
+				}
+			}
+
+		if (fixedName.EndsWith(".ress", StringComparison.OrdinalIgnoreCase) && fixedName != "resources.assets.ress")
+		{
+			string prefix = fixedName.Substring(0, fixedName.Length - 5);
+			string assetsName = prefix + ".assets.ress";
+			foreach (ResourceFile resource in currentBundle.Resources)
+			{
+				if (resource.NameFixed == assetsName)
+				{
+					return resource;
+				}
+			}
+			foreach (ResourceFile resource in currentBundle.Resources)
+			{
+				if (resource.NameFixed == "resources.assets.ress")
+				{
+					return resource;
+				}
+			}
+		}
 
 			return null;
 		}

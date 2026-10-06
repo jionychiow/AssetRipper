@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace AssetRipper.Export.Modules.Naninovel;
 
 public sealed class ParameterEncoder
@@ -6,13 +8,18 @@ public sealed class ParameterEncoder
 	{
 		if (!param.HasValue)
 		{
-			return string.Empty;
+			return field.IsRequired ? GetRequiredEmptyPlaceholder(field) : string.Empty;
 		}
 
 		string encodedValue = EncodeValue(param);
 		if (string.IsNullOrEmpty(encodedValue))
 		{
-			return string.Empty;
+			return field.IsRequired ? GetRequiredEmptyPlaceholder(field) : string.Empty;
+		}
+
+		if (encodedValue.Contains(' '))
+		{
+			encodedValue = QuoteValue(encodedValue);
 		}
 
 		if (field.ParameterAlias == "")
@@ -21,6 +28,28 @@ public sealed class ParameterEncoder
 		}
 
 		return $"{field.ParameterAlias}:{encodedValue}";
+	}
+
+	private static string GetRequiredEmptyPlaceholder(NaniTypeField field)
+	{
+		const string placeholder = "\"\"";
+		return field.ParameterAlias == "" ? placeholder : $"{field.ParameterAlias}:{placeholder}";
+	}
+
+	private static string QuoteValue(string value)
+	{
+		StringBuilder sb = new(value.Length + 2);
+		sb.Append('"');
+		for (int i = 0; i < value.Length; i++)
+		{
+			if (value[i] == '"' && (i == 0 || value[i - 1] != '\\'))
+			{
+				sb.Append('\\');
+			}
+			sb.Append(value[i]);
+		}
+		sb.Append('"');
+		return sb.ToString();
 	}
 
 	private string EncodeValue(NaniParameterField param)
@@ -47,7 +76,7 @@ public sealed class ParameterEncoder
 			{
 				parts.Add(item is null ? string.Empty : TextEscaper.Escape(item));
 			}
-			return $"[{string.Join(",", parts)}]";
+			return string.Join(",", parts);
 		}
 
 		return FormatValue(param.Value);

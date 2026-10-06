@@ -31,6 +31,7 @@ public static class AudioClipExtensions
 		{
 			return true;
 		}
+
 		else if (audioClip.Resource != null)
 		{
 			return audioClip.Resource.CheckIntegrity(audioClip.Collection);

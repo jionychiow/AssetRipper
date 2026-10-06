@@ -34,6 +34,7 @@ public sealed class TemplateShader
 			int matches = properties.Where(prop => reqProp.IsMatch(prop)).Count();
 			if (matches == 0)
 			{
+
 				return false;
 			}
 		}

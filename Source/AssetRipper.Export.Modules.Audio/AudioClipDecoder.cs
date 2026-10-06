@@ -1,9 +1,9 @@
-﻿using AssetRipper.SourceGenerated.Classes.ClassID_83;
+﻿﻿﻿using AssetRipper.Export.Modules.Audio.Fmod;
+
+using AssetRipper.SourceGenerated.Classes.ClassID_83;
 using AssetRipper.SourceGenerated.Extensions;
 using AssetRipper.SourceGenerated.NativeEnums.Fmod;
-using Fmod5Sharp;
-using Fmod5Sharp.FmodTypes;
-using Fmod5Sharp.Util;
+
 
 namespace AssetRipper.Export.Modules.Audio;
 
@@ -17,6 +17,7 @@ public static class AudioClipDecoder
 	{
 		byte[] rawData = audioClip.GetAudioData();
 
+
 		if (rawData.Length == 0)
 		{
 			decodedData = null;
@@ -25,43 +26,14 @@ public static class AudioClipDecoder
 			return false;
 		}
 
-		if (audioClip.Has_Type())
+		if (audioClip.Has_Type() && VerifyTypeMagic(rawData, audioClip.GetSoundType()))
 		{
 			fileExtension = audioClip.GetSoundType().ToRawExtension();
 			decodedData = rawData;
 			message = null;
 			return true;
 		}
-		else if (CheckMagic(rawData, "FSB5"u8))
-		{
-			FmodAudioType audioType = (FmodAudioType)uint.MaxValue;
-			try
-			{
-				if (FsbLoader.TryLoadFsbFromByteArray(rawData, out FmodSoundBank? fsbData))
-				{
-					audioType = fsbData!.Header.AudioType;
-					if (audioType.IsSupported() && fsbData.Samples.Single().RebuildAsStandardFileFormat(out decodedData, out fileExtension))
-					{
-						message = null;
-						return true;
-					}
-					else
-					{
-						decodedData = null;
-						fileExtension = null;
-						message = $"Can't decode audio clip '{audioClip.Name}' with Fmod5Sharp because it's '{audioType}' encoded.";
-						return false;
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				decodedData = null;
-				fileExtension = null;
-				message = $"Failed to convert audio ({audioType})\n{ex}";
-				return false;
-			}
-		}
+
 		else if (CheckMagic(rawData, "IMPM"u8))
 		{
 			fileExtension = FmodSoundType.It.ToRawExtension();
@@ -100,14 +72,24 @@ public static class AudioClipDecoder
 			return true;
 		}
 
-		decodedData = null;
-		fileExtension = null;
-		Span<char> asciiCharacters = stackalloc char[4];
-		CopyPrintable(rawData, asciiCharacters);
-		Span<char> hexCharacters = stackalloc char[8];
-		CopyHex(rawData, hexCharacters);
-		message = $"Failed to convert audio starting with '{asciiCharacters}' ({hexCharacters})";
-		return false;
+
+		byte[]? wavData = FmodRuntimeDecoder.DecodeToWav(rawData);
+		if (wavData is not null)
+		{
+			decodedData = wavData;
+			fileExtension = "wav";
+			message = null;
+			return true;
+		}
+
+		decodedData = rawData;
+		fileExtension = "bin";
+		Span<char> asciiCharacters2 = stackalloc char[4];
+		CopyPrintable(rawData, asciiCharacters2);
+		Span<char> hexCharacters2 = stackalloc char[8];
+		CopyHex(rawData, hexCharacters2);
+		message = $"Audio format unknown, exporting raw data. Starts with '{asciiCharacters2}' ({hexCharacters2})";
+		return true;
 	}
 
 	private static bool CheckMagic(byte[] data, ReadOnlySpan<byte> magic, int startIndex = 0)
@@ -117,6 +99,28 @@ public static class AudioClipDecoder
 			return false;
 		}
 		return data.AsSpan(startIndex, magic.Length).SequenceEqual(magic);
+	}
+
+	/// <summary>
+	/// Verifies that the raw data header matches the expected magic number for the given FMOD sound type.
+	/// </summary>
+	private static bool VerifyTypeMagic(byte[] rawData, FmodSoundType soundType)
+	{
+		return soundType switch
+		{
+			FmodSoundType.Fsb => CheckMagic(rawData, "FSB5"u8),
+			FmodSoundType.It => CheckMagic(rawData, "IMPM"u8),
+			FmodSoundType.Xm => CheckMagic(rawData, "Extended Module: "u8),
+			FmodSoundType.S3m => CheckMagic(rawData, "SCRM"u8, 156),
+			FmodSoundType.Mod => CheckMagic(rawData, "M.K."u8, 1080) ||
+				CheckMagic(rawData, "M!K!"u8, 1080) ||
+				CheckMagic(rawData, "FLT4"u8, 1080) ||
+				CheckMagic(rawData, "FLT8"u8, 1080) ||
+				CheckMagic(rawData, "4CHN"u8, 1080) ||
+				CheckMagic(rawData, "6CHN"u8, 1080) ||
+				CheckMagic(rawData, "8CHN"u8, 1080),
+			_ => false,
+		};
 	}
 
 	private static void CopyPrintable(ReadOnlySpan<byte> data, Span<char> characters)

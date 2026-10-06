@@ -1,4 +1,6 @@
 ﻿using AssetRipper.Assets;
+using AssetRipper.Assets.Generics;
+using AssetRipper.Import.Logging;
 using AssetRipper.SourceGenerated.Classes.ClassID_48;
 using AssetRipper.SourceGenerated.Extensions;
 using AssetRipper.SourceGenerated.Extensions.Enums.Shader.SerializedShader;
@@ -20,6 +22,9 @@ public sealed class DummyShaderTextExporter : ShaderExporterBase
 		#pragma surface surf Lambert
 		#pragma target 3.0
 				sampler2D _MainTex;
+				// _TintColor declared here to prevent Unity shader compiler from optimizing away the property.
+				// Naninovel's TransitionalMaterial.Opacity reads GetColor("_TintColor").a; if optimized away, Opacity becomes 0 and rendering is skipped.
+				float4 _TintColor;
 				struct Input
 				{
 					float2 uv_MainTex;
@@ -27,7 +32,8 @@ public sealed class DummyShaderTextExporter : ShaderExporterBase
 				void surf(Input IN, inout SurfaceOutput o)
 				{
 					float4 c = tex2D(_MainTex, IN.uv_MainTex);
-					o.Albedo = c.rgb;
+					o.Albedo = c.rgb * _TintColor.rgb;
+					o.Alpha = c.a * _TintColor.a;
 				}
 				ENDCG
 			}
@@ -55,16 +61,27 @@ public sealed class DummyShaderTextExporter : ShaderExporterBase
 			Export(shader.ParsedForm.PropInfo, writer);
 
 			TemplateShader templateShader = TemplateList.GetBestTemplate(shader);
+
 			writer.Write("\t//DummyShaderTextExporter\n");
+			string shaderBody;
 			if (templateShader != null)
 			{
-				writer.Write(templateShader.ShaderText);
+				shaderBody = templateShader.ShaderText;
 			}
 			else
 			{
-				writer.WriteIndent(1);
-				writer.Write(FallbackDummyShader);
+				shaderBody = FallbackDummyShader;
 			}
+
+			// Post-process: ensure _TintColor property is actually used in the shader code.
+			// Unity shader compiler strips unused Properties, causing Material.GetColor("_TintColor") to return (0,0,0,0).
+			// This makes Naninovel's TransitionalMaterial.Opacity = 0, ShouldRender() = false, and background images don't render.
+			if (HasTintColorProperty(shader) && !shaderBody.Contains("_TintColor"))
+			{
+				shaderBody = InjectTintColorUsage(shaderBody);
+			}
+
+			writer.Write(shaderBody);
 			writer.Write('\n');
 
 			if (shader.ParsedForm.FallbackName != string.Empty)
@@ -90,8 +107,9 @@ public sealed class DummyShaderTextExporter : ShaderExporterBase
 			writer.WriteString(header, 0, subshaderIndex);
 
 			writer.Write("\t//DummyShaderTextExporter\n");
+			string fallbackBody = FallbackDummyShader;
 			writer.WriteIndent(1);
-			writer.Write(FallbackDummyShader);
+			writer.Write(fallbackBody);
 
 			writer.Write('}');
 		}
@@ -217,5 +235,65 @@ public sealed class DummyShaderTextExporter : ShaderExporterBase
 				throw new NotSupportedException($"Serialized property type {_this.Type} isn't supported");
 		}
 		writer.Write('\n');
+	}
+
+	/// <summary>
+	/// Checks whether the shader has a property named "_TintColor" in its ParsedForm.
+	/// </summary>
+	private static bool HasTintColorProperty(IShader shader)
+	{
+		if (!shader.Has_ParsedForm())
+		{
+			return false;
+		}
+
+		AccessListBase<ISerializedProperty>? properties = shader.ParsedForm?.PropInfo?.Props;
+		if (properties is null || properties.Count == 0)
+		{
+			return false;
+		}
+
+		foreach (ISerializedProperty prop in properties)
+		{
+			if (prop.Name == "_TintColor")
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Injects _TintColor declaration and usage into shader body that doesn't reference it.
+	/// Handles both vertex/fragment (frag) and surface (surf) shader styles.
+	/// </summary>
+	private static string InjectTintColorUsage(string shaderBody)
+	{
+		// Case 1: vertex/fragment shader with frag function returning tex2D(_MainTex, ...)
+		if (shaderBody.Contains("return tex2D(_MainTex, input.uv.xy);"))
+		{
+			shaderBody = shaderBody.Replace(
+				"sampler2D _MainTex;",
+				"sampler2D _MainTex;\n\t\t\tfloat4 _TintColor; // Injected to prevent property optimization");
+			shaderBody = shaderBody.Replace(
+				"return tex2D(_MainTex, input.uv.xy);",
+				"return tex2D(_MainTex, input.uv.xy) * _TintColor;");
+			return shaderBody;
+		}
+
+		// Case 2: surface shader with surf function setting o.Albedo = c.rgb
+		if (shaderBody.Contains("o.Albedo = c.rgb;"))
+		{
+			shaderBody = shaderBody.Replace(
+				"sampler2D _MainTex;",
+				"sampler2D _MainTex;\n\t\t\tfloat4 _TintColor; // Injected to prevent property optimization");
+			shaderBody = shaderBody.Replace(
+				"o.Albedo = c.rgb;",
+				"o.Albedo = c.rgb * _TintColor.rgb;\n\t\t\t\to.Alpha = c.a * _TintColor.a;");
+			return shaderBody;
+		}
+
+		return shaderBody;
 	}
 }

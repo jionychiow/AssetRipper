@@ -60,6 +60,13 @@ public static class StreamedResourceExtensions
 		byte[] data = new byte[size];
 		file.Stream.Position = (long)offset;
 		file.Stream.ReadExactly(data);
+
+		byte[]? correctedData = Fsb5OffsetCorrector.TryCorrectFsb5Offset(file.Stream, (long)offset, (long)size, data);
+		if (correctedData is not null)
+		{
+			return correctedData;
+		}
+
 		return data;
 	}
 

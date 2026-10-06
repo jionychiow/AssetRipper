@@ -55,6 +55,8 @@ public abstract class AssetsExportCollection<T> : AssetExportCollection<T> where
 		return ExportIdHandler.GetPseudoRandomExportId(asset, m_exportIDs.Count);
 	}
 
+	protected int ExportIDCount => m_exportIDs.Count;
+
 	/// <summary>
 	/// Add an asset to this export collection.
 	/// </summary>

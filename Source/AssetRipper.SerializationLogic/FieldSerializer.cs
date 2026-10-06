@@ -200,8 +200,20 @@ public readonly partial struct FieldSerializer
 			{
 				if (fieldDefinition.HasSerializeReferenceAttribute())
 				{
-					failureReason = $"{fieldDefinition.DeclaringType?.FullName}.{fieldDefinition.Name} uses the [SerializeReference] attribute, which is currently not supported.";
-					return false;
+					int refArrayDepth = 0;
+					TypeSignature refFieldType = fieldType;
+					if (refFieldType is CustomModifierTypeSignature customMod)
+					{
+						refFieldType = customMod.BaseType;
+					}
+					if (refFieldType is SzArrayTypeSignature || (refFieldType is GenericInstanceTypeSignature git && git.GenericType is { Namespace.Value: "System.Collections.Generic", Name.Value: "List`1" }))
+					{
+						refArrayDepth = 1;
+					}
+					SerializableType refType = SerializablePrimitiveType.GetOrCreate(PrimitiveType.Int);
+					Field refField = new(refType, refArrayDepth, fieldDefinition.Name ?? "", ShouldAlign(PrimitiveType.Int, refArrayDepth));
+					fields.Add(refField);
+					continue;
 				}
 
 				int arrayDepth = 0;
@@ -300,12 +312,12 @@ public readonly partial struct FieldSerializer
 					return false;
 				}
 
-				result = new Field(fieldType, arrayDepth, name, true);
+			result = new Field(fieldType, arrayDepth, name, ShouldAlign(fieldType.Type, arrayDepth));
 				failureReason = null;
 				return true;
 
 			case CorLibTypeSignature corLibTypeSignature:
-				result = new Field(SerializablePrimitiveType.GetOrCreate(corLibTypeSignature.ToPrimitiveType()), arrayDepth, name, true);
+				result = new Field(SerializablePrimitiveType.GetOrCreate(corLibTypeSignature.ToPrimitiveType()), arrayDepth, name, ShouldAlign(corLibTypeSignature.ToPrimitiveType(), arrayDepth));
 				failureReason = null;
 				return true;
 
@@ -315,13 +327,13 @@ public readonly partial struct FieldSerializer
 			case GenericInstanceTypeSignature genericInstanceTypeSignature:
 				if (genericInstanceTypeSignature.InheritsFromObject(runtimeContext))
 				{
-					result = new Field(SerializablePointerType.Shared, arrayDepth, name, true);
+					result = new Field(SerializablePointerType.Shared, arrayDepth, name, ShouldAlign(SerializablePointerType.Shared.Type, arrayDepth));
 					failureReason = null;
 					return true;
 				}
 				else if (typeCache.TryGetValue(genericInstanceTypeSignature.ToTypeDefOrRef(), out SerializableType? cachedGenericMonoType))
 				{
-					result = new Field(cachedGenericMonoType, arrayDepth, name, true);
+					result = new Field(cachedGenericMonoType, arrayDepth, name, ShouldAlign(cachedGenericMonoType.Type, arrayDepth));
 					failureReason = null;
 					return true;
 				}
@@ -331,7 +343,7 @@ public readonly partial struct FieldSerializer
 				}
 				else if (TryCreateSerializableType(genericInstanceTypeSignature, typeCache, typeStack, out SerializableType? monoType, out failureReason))
 				{
-					result = new(monoType, arrayDepth, name, true);
+					result = new(monoType, arrayDepth, name, ShouldAlign(monoType.Type, arrayDepth));
 					return true;
 				}
 				else
@@ -345,6 +357,16 @@ public readonly partial struct FieldSerializer
 				failureReason = $"{typeSignature.FullName} not supported.";
 				return false;
 		}
+	}
+
+	private static bool ShouldAlign(PrimitiveType primitiveType, int arrayDepth)
+	{
+		if (arrayDepth > 0)
+		{
+			return true;
+		}
+
+		return primitiveType is not (PrimitiveType.Complex or PrimitiveType.Pair or PrimitiveType.MapPair);
 	}
 
 	private bool TryGetBaseType(GenericInstanceTypeSignature genericInstanceType, out TypeSignature? baseType)

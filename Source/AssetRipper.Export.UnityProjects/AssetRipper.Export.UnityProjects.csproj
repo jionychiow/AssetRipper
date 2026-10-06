@@ -27,8 +27,20 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Remove="Shaders\Resources\**\*" />
+		<EmbeddedResource Include="Shaders\Resources\**\*" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Content Remove="C:\Users\**\.nuget\packages\icsharpcode.decompiler\**\Humanizer\LICENSE" />
 		<Content Remove="C:\Users\**\.nuget\packages\icsharpcode.decompiler\**\Pattern Matching.html" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Remove="Naninovel\Packages\**\*" />
+		<Content Include="Naninovel\Packages\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 
 </Project>

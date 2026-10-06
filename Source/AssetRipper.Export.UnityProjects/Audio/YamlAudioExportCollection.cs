@@ -19,11 +19,14 @@ public sealed class YamlAudioExportCollection : AssetExportCollection<IAudioClip
 			Utf8String originalSource = resource.Source;
 			ulong originalOffset = resource.Offset;
 			ulong originalSize = resource.Size;
+			bool originalPreload = Asset.PreloadAudioData;
 			if (resource.TryGetContent(Asset.Collection, out byte[]? data))
 			{
 				string resPath = filePath + ".resS";
 				fileSystem.File.WriteAllBytes(resPath, data);
 				resource.Source = fileSystem.Path.GetRelativePath(dirPath, resPath);
+				resource.Offset = 0;
+				resource.Size = (ulong)data.Length;
 			}
 			else
 			{
@@ -31,10 +34,12 @@ public sealed class YamlAudioExportCollection : AssetExportCollection<IAudioClip
 				resource.Offset = 0;
 				resource.Size = 0;
 			}
+			Asset.PreloadAudioData = false;
 			bool result = base.ExportInner(container, filePath, dirPath, fileSystem);
 			resource.Source = originalSource;
 			resource.Offset = originalOffset;
 			resource.Size = originalSize;
+			Asset.PreloadAudioData = originalPreload;
 			return result;
 		}
 		else
@@ -43,5 +48,5 @@ public sealed class YamlAudioExportCollection : AssetExportCollection<IAudioClip
 		}
 	}
 
-	protected override string GetExportExtension(IUnityObjectBase asset) => "audioclip";
+	protected override string GetExportExtension(IUnityObjectBase asset) => "asset";
 }

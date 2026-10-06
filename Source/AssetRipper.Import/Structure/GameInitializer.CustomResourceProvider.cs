@@ -18,13 +18,24 @@ internal sealed partial record class GameInitializer
 		{
 			string fixedName = SpecialFileNames.FixResourcePath(resName);
 			string? resPath = RequestResource(fixedName);
+			string effectiveName = fixedName;
+			if (resPath is null && fixedName == "resources.resource")
+			{
+				resPath = RequestResource("resources.assets.resS");
+				effectiveName = "resources.assets.resS";
+			}
+			if (resPath is null && fixedName.EndsWith(".resS", StringComparison.OrdinalIgnoreCase))
+			{
+				resPath = RequestResource("resources.assets.resS");
+				effectiveName = "resources.assets.resS";
+			}
 			if (resPath is null)
 			{
 				Logger.Log(LogType.Warning, LogCategory.Import, $"Resource file '{resName}' hasn't been found");
 				return null;
 			}
 
-			ResourceFile resourceFile = new ResourceFile(resPath, fixedName, FileSystem);
+			ResourceFile resourceFile = new ResourceFile(resPath, effectiveName, FileSystem);
 			Logger.Info(LogCategory.Import, $"Resource file '{resName}' has been loaded");
 			return resourceFile;
 		}

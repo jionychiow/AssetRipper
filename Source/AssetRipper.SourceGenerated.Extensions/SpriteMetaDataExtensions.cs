@@ -130,7 +130,7 @@ public static class SpriteMetaDataExtensions
 			}
 		}
 
-#warning TODO: SpriteConverter does not generate instance.Edges
+		// TODO: SpriteConverter does not generate instance.Edges
 
 		if (instance.Has_Weights())
 		{

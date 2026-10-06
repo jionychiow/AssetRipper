@@ -4,12 +4,11 @@
 
 		Pass
 		{
-			HLSLPROGRAM
+			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
+			#include "UnityCG.cginc"
 
-			float4x4 unity_ObjectToWorld;
-			float4x4 unity_MatrixVP;
 			float4 _MainTex_ST;
 
 			struct Vertex_Stage_Input
@@ -28,12 +27,11 @@
 			{
 				Vertex_Stage_Output output;
 				output.uv = (input.uv.xy * _MainTex_ST.xy) + _MainTex_ST.zw;
-				output.pos = mul(unity_MatrixVP, mul(unity_ObjectToWorld, input.pos));
+				output.pos = mul(UNITY_MATRIX_MVP, input.pos);
 				return output;
 			}
 
-			Texture2D<float4> _MainTex;
-			SamplerState sampler_MainTex;
+			sampler2D _MainTex;
 
 			struct Fragment_Stage_Input
 			{
@@ -42,9 +40,9 @@
 
 			float4 frag(Fragment_Stage_Input input) : SV_TARGET
 			{
-				return _MainTex.Sample(sampler_MainTex, input.uv.xy);
+				return tex2D(_MainTex, input.uv.xy);
 			}
 
-			ENDHLSL
+			ENDCG
 		}
 	}

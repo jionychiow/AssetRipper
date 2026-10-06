@@ -23,11 +23,21 @@ public sealed class AudioClipExporter : BinaryAssetExporter
 		{
 			if (!AudioClipDecoder.TryDecode(audio, out byte[]? decodedData, out string? fileExtension, out string? message))
 			{
-				Logger.Warning(LogCategory.Export, message);
+				Logger.Warning(LogCategory.Export, $"Audio format unknown for '{audio.Name}', exporting as dummy WAV. {message}");
+				exportCollection = new AudioClipExportCollection(this, audio, "wav");
+				return true;
 			}
 			else if (decodedData.Length == 0)
 			{
-				Logger.Warning(LogCategory.Export, $"Decoded audio data is empty for '{audio.Name}'");
+				Logger.Warning(LogCategory.Export, $"Decoded audio data is empty for '{audio.Name}', exporting as dummy WAV.");
+				exportCollection = new AudioClipExportCollection(this, audio, "wav");
+				return true;
+			}
+			else if (fileExtension == "bin")
+			{
+				Logger.Warning(LogCategory.Export, $"Audio format unknown for '{audio.Name}', exporting as dummy WAV.");
+				exportCollection = new AudioClipExportCollection(this, audio, "wav");
+				return true;
 			}
 			else
 			{

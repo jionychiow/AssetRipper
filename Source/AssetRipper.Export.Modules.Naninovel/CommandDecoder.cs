@@ -44,7 +44,8 @@ public sealed class CommandDecoder
 			return alias;
 		}
 
-		List<string> paramParts = new();
+		List<string> positionalParts = new();
+		List<string> namedParts = new();
 		string? conditionalExpr = null;
 		bool? waitValue = null;
 
@@ -59,7 +60,7 @@ public sealed class CommandDecoder
 			{
 				if (waitParam.HasValue)
 				{
-					waitValue = (bool)waitParam.Value;
+					if (waitParam.Value is bool b) waitValue = b;
 				}
 				continue;
 			}
@@ -83,10 +84,21 @@ public sealed class CommandDecoder
 				string encoded = parameterEncoder.Encode(param, field);
 				if (!string.IsNullOrEmpty(encoded))
 				{
-					paramParts.Add(encoded);
+					if (field.ParameterAlias == "")
+					{
+						positionalParts.Add(encoded);
+					}
+					else
+					{
+						namedParts.Add(encoded);
+					}
 				}
 			}
 		}
+
+		List<string> paramParts = new(positionalParts.Count + namedParts.Count + 2);
+		paramParts.AddRange(positionalParts);
+		paramParts.AddRange(namedParts);
 
 		if (conditionalExpr is not null)
 		{

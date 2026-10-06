@@ -1,4 +1,5 @@
 ﻿using AssetRipper.Assets;
+using AssetRipper.Import.Logging;
 using AssetRipper.SourceGenerated.Classes.ClassID_329;
 using AssetRipper.SourceGenerated.Extensions;
 

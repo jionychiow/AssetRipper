@@ -27,6 +27,10 @@ public class CoreConfiguration
 	/// </summary>
 	public string ExportRootPath { get; set; } = "";
 	/// <summary>
+	/// The source path from which assets were imported
+	/// </summary>
+	public string SourceDataPath { get; set; } = "";
+	/// <summary>
 	/// The path to create a new unity project in
 	/// </summary>
 	public string ProjectRootPath => Path.Join(ExportRootPath, "ExportedProject");

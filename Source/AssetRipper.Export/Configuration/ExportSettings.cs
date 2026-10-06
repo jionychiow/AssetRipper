@@ -25,6 +25,11 @@ public sealed record class ExportSettings
 	public ScriptExportMode ScriptExportMode { get; set; } = ScriptExportMode.Hybrid;
 
 	/// <summary>
+	/// Controls how third-party plugin assemblies are exported. Default: <see cref="PluginExportMode.FromGame"/>
+	/// </summary>
+	public PluginExportMode PluginExportMode { get; set; } = PluginExportMode.FromGame;
+
+	/// <summary>
 	/// The C# language version of decompiled scripts.
 	/// </summary>
 	public ScriptLanguageVersion ScriptLanguageVersion { get; set; } = ScriptLanguageVersion.AutoSafe;
@@ -66,6 +71,7 @@ public sealed record class ExportSettings
 		Logger.Info(LogCategory.General, $"{nameof(ImageExportFormat)}: {ImageExportFormat}");
 		Logger.Info(LogCategory.General, $"{nameof(LightmapTextureExportFormat)}: {LightmapTextureExportFormat}");
 		Logger.Info(LogCategory.General, $"{nameof(ScriptExportMode)}: {ScriptExportMode}");
+		Logger.Info(LogCategory.General, $"{nameof(PluginExportMode)}: {PluginExportMode}");
 		Logger.Info(LogCategory.General, $"{nameof(ScriptLanguageVersion)}: {ScriptLanguageVersion}");
 		Logger.Info(LogCategory.General, $"{nameof(ShaderExportMode)}: {ShaderExportMode}");
 		Logger.Info(LogCategory.General, $"{nameof(SpriteExportMode)}: {SpriteExportMode}");

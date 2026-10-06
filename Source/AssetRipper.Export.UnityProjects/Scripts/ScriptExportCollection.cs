@@ -1,5 +1,6 @@
 using AsmResolver.DotNet;
 using AssetRipper.Assets;
+using AssetRipper.Export.Configuration;
 using AssetRipper.Export.UnityProjects.Scripts.AssemblyDefinitions;
 using AssetRipper.Import.Logging;
 using AssetRipper.Import.Structure.Assembly;
@@ -58,8 +59,15 @@ public sealed class ScriptExportCollection : ScriptExportCollectionBase
 
 		Dictionary<string, AssemblyDefinitionDetails> assemblyDefinitionDetailsDictionary = new();
 
-		string pluginsFolder = fileSystem.Path.Join(assetsDirectoryPath, "Plugins");
+		// DLLs are exported to a subfolder of Plugins to prevent Unity 2019.4 from
+		// skipping script compilation when pre-compiled assemblies are in the Plugins root.
+		string pluginsFolder = fileSystem.Path.Join(assetsDirectoryPath, "Plugins", "GameLibs");
 
+		PostProcessStatistics totalPostProcessStats = new();
+		List<string> riskWarnings = new();
+		List<string> skippedThirdPartyAssemblies = new();
+
+		bool anyDecompiled = false;
 		foreach (AssemblyDefinition assembly in AssetExporter.AssemblyManager.GetAssemblies())
 		{
 			string assemblyName = assembly.Name!;
@@ -72,7 +80,11 @@ public sealed class ScriptExportCollection : ScriptExportCollectionBase
 				fileSystem.Directory.Create(outputDirectory);
 				AssetExporter.Decompiler.DecompileWholeProject(assembly, outputDirectory, fileSystem);
 
+				PostProcessStatistics stats = DecompiledCodePostProcessor.PostProcessDirectory(outputDirectory, fileSystem);
+				totalPostProcessStats.Merge(stats);
+
 				assemblyDefinitionDetailsDictionary.TryAdd(assemblyName, new AssemblyDefinitionDetails(assembly, outputDirectory));
+				anyDecompiled = true;
 			}
 			else if (exportType is AssemblyExportType.Save)
 			{
@@ -82,6 +94,18 @@ public sealed class ScriptExportCollection : ScriptExportCollectionBase
 				AssetExporter.AssemblyManager.SaveAssembly(assembly, outputPath, fileSystem);
 				OnAssemblyExported(container, outputPath, fileSystem);
 			}
+			else if (exportType is AssemblyExportType.Skip
+				&& AssetExporter.PluginExportMode is PluginExportMode.Skip
+				&& AssetExporter.IsThirdPartyAssembly(assemblyName)
+				&& !AssetExporter.ReferenceAssemblyDictionary.ContainsKey(assemblyName ?? ""))
+			{
+				skippedThirdPartyAssemblies.Add(assemblyName ?? "");
+			}
+		}
+
+		if (anyDecompiled)
+		{
+			AsyncHelperGenerator.TryGenerateHelpers(assetsDirectoryPath, fileSystem);
 		}
 
 		foreach (IMonoScript asset in m_export)
@@ -115,6 +139,7 @@ public sealed class ScriptExportCollection : ScriptExportCollectionBase
 
 		// assembly definitions were added in 2017.3
 		//     see: https://blog.unity.com/technology/unity-2017-3b-feature-preview-assembly-definition-files-and-transform-tool
+		int asmdefConfigCount = 0;
 		if (assemblyDefinitionDetailsDictionary.Count > 0 && container.ExportVersion.GreaterThanOrEquals(2017, 3))
 		{
 			foreach (AssemblyDefinitionDetails details in assemblyDefinitionDetailsDictionary.Values)
@@ -124,9 +149,18 @@ public sealed class ScriptExportCollection : ScriptExportCollectionBase
 				if (!ReferenceAssemblies.IsPredefinedAssembly(details.AssemblyName))
 				{
 					AssemblyDefinitionExporter.Export(details, fileSystem, AssetExporter.ReferenceAssemblyDictionary);
+					asmdefConfigCount++;
 				}
 			}
 		}
+
+		if (skippedThirdPartyAssemblies.Count > 0)
+		{
+			Logger.Warning(LogCategory.Export, $"Skipped {skippedThirdPartyAssemblies.Count} third-party assembly export(s): {string.Join(", ", skippedThirdPartyAssemblies)}");
+			Logger.Warning(LogCategory.Export, "Manual import required: In Unity, use Assets > Import Package > Custom Package to import the original .unitypackage or .zip files for these plugins.");
+		}
+
+		CompilationReadinessReport.LogToLogger(totalPostProcessStats, asmdefConfigCount, riskWarnings);
 
 		return true;
 	}
@@ -140,8 +174,8 @@ public sealed class ScriptExportCollection : ScriptExportCollectionBase
 			PlatformSettingsData_Plugin anyPlatformSettings = importer.AddPlatformSettings("Any", Utf8String.Empty);
 			anyPlatformSettings.Enabled = true;
 
-			PlatformSettingsData_Plugin editorPlatformSettings = importer.AddPlatformSettings("Editor", "Editor");
-			editorPlatformSettings.Enabled = false;
+		PlatformSettingsData_Plugin editorPlatformSettings = importer.AddPlatformSettings("Editor", "Editor");
+		editorPlatformSettings.Enabled = true;
 			editorPlatformSettings.Settings.Add("DefaultValueInitialized", "true");
 		}
 

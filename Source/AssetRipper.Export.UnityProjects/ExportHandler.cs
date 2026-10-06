@@ -1,8 +1,14 @@
 ﻿using AssetRipper.Assets.Bundles;
 using AssetRipper.Export.Configuration;
+using AssetRipper.Export.UnityProjects.AddressablesPathFix;
+using AssetRipper.Export.UnityProjects.Naninovel.Import;
+using AssetRipper.Export.UnityProjects.Naninovel.Package;
 using AssetRipper.Export.UnityProjects.PathIdMapping;
 using AssetRipper.Export.UnityProjects.Project;
 using AssetRipper.Export.UnityProjects.Scripts;
+using AssetRipper.Export.UnityProjects.Shaders;
+using AssetRipper.Export.UnityProjects.Shaders.Enhance;
+using AssetRipper.Import;
 using AssetRipper.Import.Configuration;
 using AssetRipper.Import.Logging;
 using AssetRipper.Import.Structure;
@@ -107,6 +113,8 @@ public class ExportHandler
 		projectExporter.DoFinalOverrides(Settings);
 		projectExporter.Export(gameData.GameBundle, Settings, fileSystem);
 
+		LayoutFixStatistics.LogSummary();
+
 		Logger.Info(LogCategory.Export, "Finished exporting assets");
 
 		foreach (IPostExporter postExporter in GetPostExporters())
@@ -136,7 +144,24 @@ public class ExportHandler
 		yield return new PackageManifestPostExporter();
 		yield return new StreamingAssetsPostExporter();
 		yield return new DllPostExporter();
+		yield return new Scripts.AssemblyDependencyPostExporter();
+		yield return new ResourcePathCasingFixer();
+		yield return new NaninovelPackageExtractorPostExporter();
+		yield return new Naninovel.Dedup.DuplicateNaniRemoverPostExporter();
+		yield return new NaninovelResourcePatcherPostExporter();
+		yield return new Naninovel.NaninovelProjectResourcePathCaseFixer();
+		yield return new Naninovel.CanvasRenderModeSceneFixer();
+		yield return new Naninovel.RuntimeInit.NaninovelRuntimeInitializerFixPostExporter();
+		yield return new Project.UniTaskPlayerLoopPostExporter();
+		yield return new ShaderReplacementPostExporter();
+		yield return new TransitionalShaderEnhancer();
 		yield return new PathIdMapExporter();
+		yield return new Video.WebmVideoPostExporter();
+		yield return new AddressablesPathFixPostExporter();
+		yield return new Naninovel.TextureImportTypePostExporter();
+		yield return new Naninovel.Dedup.NaninovelResourceDedupPostExporter();
+		yield return new Naninovel.Import.NaniScriptImporterPostExporter();
+		yield return new Naninovel.ShaderLineEndingNormalizerPostExporter();
 	}
 
 	public GameData LoadAndProcess(IReadOnlyList<string> paths, FileSystem fileSystem)
@@ -151,6 +176,10 @@ public class ExportHandler
 
 	public void LoadProcessAndExport(IReadOnlyList<string> inputPaths, string outputPath, FileSystem fileSystem)
 	{
+		if (inputPaths.Count > 0)
+		{
+			Settings.SourceDataPath = inputPaths[0];
+		}
 		GameData gameData = LoadAndProcess(inputPaths, fileSystem);
 		Export(gameData, outputPath, fileSystem);
 	}

@@ -31,6 +31,46 @@
 					"PropertyName" : "_Color",
 					"PropertyTypeName" : "Color"
 				}]
+		},
+		{
+			"TemplateName" : "TintedTexture",
+			"RequiredProperties" : [
+				{
+					"PropertyName" : "_MainTex",
+					"PropertyTypeName" : "Texture"
+				},
+				{
+					"PropertyName" : "_TintColor",
+					"PropertyTypeName" : "Vector"
+				}]
+		},
+		{
+			"TemplateName" : "UITextShader",
+			"RequiredProperties" : [
+				{
+					"PropertyName" : "_MainTex",
+					"PropertyTypeName" : "Texture"
+				},
+				{
+					"PropertyName" : "_Color",
+					"PropertyTypeName" : "Color"
+				},
+				{
+					"PropertyName" : "_StencilComp",
+					"PropertyTypeName" : "Single"
+				}]
+		},
+		{
+			"TemplateName" : "UITextureShader",
+			"RequiredProperties" : [
+				{
+					"PropertyName" : "_MainTex",
+					"PropertyTypeName" : "Texture"
+				},
+				{
+					"PropertyName" : "_StencilComp",
+					"PropertyTypeName" : "Single"
+				}]
 		}
 	]
 }

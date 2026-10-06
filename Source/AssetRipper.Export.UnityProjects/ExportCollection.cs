@@ -12,12 +12,14 @@ using AssetRipper.SourceGenerated.Classes.ClassID_1953259897;
 using AssetRipper.SourceGenerated.Classes.ClassID_200;
 using AssetRipper.SourceGenerated.Classes.ClassID_206;
 using AssetRipper.SourceGenerated.Classes.ClassID_21;
+using AssetRipper.SourceGenerated.Classes.ClassID_213;
 using AssetRipper.SourceGenerated.Classes.ClassID_221;
 using AssetRipper.SourceGenerated.Classes.ClassID_240;
 using AssetRipper.SourceGenerated.Classes.ClassID_28;
 using AssetRipper.SourceGenerated.Classes.ClassID_319;
 using AssetRipper.SourceGenerated.Classes.ClassID_48;
 using AssetRipper.SourceGenerated.Classes.ClassID_62;
+using AssetRipper.SourceGenerated.Classes.ClassID_687078895;
 using AssetRipper.SourceGenerated.Classes.ClassID_74;
 using AssetRipper.SourceGenerated.Classes.ClassID_84;
 using AssetRipper.SourceGenerated.Classes.ClassID_850595691;
@@ -113,6 +115,7 @@ public abstract class ExportCollection : IExportCollection
 			IPhysicsMaterial2D => "physicsMaterial2D",
 			IRenderTexture => "renderTexture",
 			ITerrainLayer => "terrainlayer",
+			ISpriteAtlas => "spriteatlas",
 			IWebCamTexture => "webCamTexture",
 			IAnimatorState => "state",
 			IAnimatorStateMachine => "statemachine",

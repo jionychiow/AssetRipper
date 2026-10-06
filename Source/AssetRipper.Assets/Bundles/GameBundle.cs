@@ -39,8 +39,27 @@ public sealed partial class GameBundle : Bundle
 			if (resourceFile is not null)
 			{
 				AddResource(resourceFile);
+				if (originalName == "resources.assets.resS")
+				{
+					ResourceFile? altResource = ResourceProvider.FindResource("resources.resource");
+					if (altResource is not null && altResource.NameFixed != resourceFile.NameFixed)
+					{
+						AddResource(altResource);
+					}
+				}
+				return resourceFile;
 			}
-			return resourceFile;
+
+			if (originalName == "resources.assets.resS")
+			{
+				ResourceFile? altResource = ResourceProvider.FindResource("resources.resource");
+				if (altResource is not null)
+				{
+					AddResource(altResource);
+					return altResource;
+				}
+			}
+			return null;
 		}
 		else
 		{

@@ -4,12 +4,10 @@
 
 		Pass
 		{
-			HLSLPROGRAM
+			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
-
-			float4x4 unity_ObjectToWorld;
-			float4x4 unity_MatrixVP;
+			#include "UnityCG.cginc"
 
 			struct Vertex_Stage_Input
 			{
@@ -24,7 +22,7 @@
 			Vertex_Stage_Output vert(Vertex_Stage_Input input)
 			{
 				Vertex_Stage_Output output;
-				output.pos = mul(unity_MatrixVP, mul(unity_ObjectToWorld, input.pos));
+				output.pos = mul(UNITY_MATRIX_MVP, input.pos);
 				return output;
 			}
 
@@ -35,6 +33,6 @@
 				return _Color; // RGBA
 			}
 
-			ENDHLSL
+			ENDCG
 		}
 	}

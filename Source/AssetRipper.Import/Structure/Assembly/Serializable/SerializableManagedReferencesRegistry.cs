@@ -67,9 +67,9 @@ public sealed class SerializableManagedReferencesRegistry : IUnityAssetBase
 
 	private void WriteManagedReference(AssetWriter writer, ManagedReference reference)
 	{
-		writer.Write(reference.Class);
-		writer.Write(reference.Namespace);
-		writer.Write(reference.Assembly);
+		writer.Write(reference.Class ?? string.Empty);
+		writer.Write(reference.Namespace ?? string.Empty);
+		writer.Write(reference.Assembly ?? string.Empty);
 		
 		if (reference.Data is SerializableStructure structure)
 		{

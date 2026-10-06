@@ -23,8 +23,7 @@ public record class PackageManifest([property: JsonPropertyName("dependencies")]
 
 	public void AddDefaultDependencies(UnityVersion version)
 	{
-		// This should be accurate to at least 2023
-
+		// Unity built-in modules
 		Dependencies.TryAdd("com.unity.modules.ai", "1.0.0");
 		if (version.GreaterThanOrEquals(2019, 2))
 		{
@@ -59,5 +58,11 @@ public record class PackageManifest([property: JsonPropertyName("dependencies")]
 		Dependencies.TryAdd("com.unity.modules.vr", "1.0.0");
 		Dependencies.TryAdd("com.unity.modules.wind", "1.0.0");
 		Dependencies.TryAdd("com.unity.modules.xr", "1.0.0");
+
+		// UPM packages conflict with DLLs in Assets/Plugins/ — all runtime DLLs are already exported
+		// foreach (KeyValuePair<string, string> package in UnityPackageMapping.GetPackageDependencies(version))
+		// {
+		// 	Dependencies.TryAdd(package.Key, package.Value);
+		// }
 	}
 }

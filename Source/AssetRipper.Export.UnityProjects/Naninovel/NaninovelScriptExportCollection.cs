@@ -6,6 +6,7 @@ using AssetRipper.Import.Logging;
 using AssetRipper.Import.Structure.Assembly.Serializable;
 using AssetRipper.IO.Endian;
 using AssetRipper.IO.Files;
+using AssetRipper.SourceGenerated.Classes.ClassID_1031;
 using AssetRipper.SourceGenerated.Classes.ClassID_114;
 
 namespace AssetRipper.Export.UnityProjects.Naninovel;
@@ -39,6 +40,16 @@ public class NaninovelScriptExportCollection : AssetExportCollection<IMonoBehavi
 	protected override string GetExportExtension(IUnityObjectBase asset)
 	{
 		return "nani";
+	}
+
+	protected override ITextScriptImporter CreateImporter(IExportContainer container)
+	{
+		ITextScriptImporter importer = TextScriptImporter.Create(container.File, container.ExportVersion);
+		if (importer.Has_AssetBundleName_R() && Asset.AssetBundleName is not null)
+		{
+			importer.AssetBundleName_R = Asset.AssetBundleName;
+		}
+		return importer;
 	}
 
 	protected override bool ExportInner(IExportContainer container, string filePath, string dirPath, FileSystem fileSystem)

@@ -66,16 +66,16 @@ public sealed class NaniTypeLayoutTable
 
 	private static List<NaniTypeField> ModifyActorFields() => new()
 	{
-		new("Id", NaniFieldType.CommandParameter, "", "StringParameter"),
-		new("Appearance", NaniFieldType.CommandParameter, "", "StringParameter"),
-		new("Pose", NaniFieldType.CommandParameter, "", "StringParameter"),
-		new("Transition", NaniFieldType.CommandParameter, "", "StringParameter"),
+		new("Id", NaniFieldType.CommandParameter, "Id", "StringParameter"),
+		new("Appearance", NaniFieldType.CommandParameter, "Appearance", "StringParameter"),
+		new("Pose", NaniFieldType.CommandParameter, "Pose", "StringParameter"),
+		new("Transition", NaniFieldType.CommandParameter, "Transition", "StringParameter"),
 		new("TransitionParams", NaniFieldType.CommandParameter, "params", "DecimalListParameter"),
 		new("DissolveTexturePath", NaniFieldType.CommandParameter, "dissolve", "StringParameter"),
-		new("Visible", NaniFieldType.CommandParameter, "", "BooleanParameter"),
-		new("Position", NaniFieldType.CommandParameter, "", "DecimalListParameter"),
-		new("Rotation", NaniFieldType.CommandParameter, "", "DecimalListParameter"),
-		new("Scale", NaniFieldType.CommandParameter, "", "DecimalListParameter"),
+		new("Visible", NaniFieldType.CommandParameter, "Visible", "BooleanParameter"),
+		new("Position", NaniFieldType.CommandParameter, "Position", "DecimalListParameter"),
+		new("Rotation", NaniFieldType.CommandParameter, "Rotation", "DecimalListParameter"),
+		new("Scale", NaniFieldType.CommandParameter, "Scale", "DecimalListParameter"),
 		new("TintColor", NaniFieldType.CommandParameter, "tint", "StringParameter"),
 		new("EasingTypeName", NaniFieldType.CommandParameter, "easing", "StringParameter"),
 		new("Duration", NaniFieldType.CommandParameter, "time", "DecimalParameter"),
@@ -110,7 +110,7 @@ public sealed class NaniTypeLayoutTable
 
 		AddCommand("PrintText", new()
 		{
-			new("Text", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Text", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 			new("PrinterId", NaniFieldType.CommandParameter, "printer", "StringParameter"),
 			new("AuthorId", NaniFieldType.CommandParameter, "author", "StringParameter"),
 			new("RevealSpeed", NaniFieldType.CommandParameter, "speed", "DecimalParameter"),
@@ -124,7 +124,7 @@ public sealed class NaniTypeLayoutTable
 
 		AddCommand("AppendText", new()
 		{
-			new("Text", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Text", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 			new("PrinterId", NaniFieldType.CommandParameter, "printer", "StringParameter"),
 			new("AuthorId", NaniFieldType.CommandParameter, "author", "StringParameter"),
 		});
@@ -139,6 +139,12 @@ public sealed class NaniTypeLayoutTable
 		AddCommand("ResetText", new()
 		{
 			new("PrinterId", NaniFieldType.CommandParameter, "", "StringParameter"),
+		});
+
+		AddCommand("SetTextStyle", new()
+		{
+			new("TextStyles", NaniFieldType.CommandParameter, "", "StringListParameter") { IsRequired = true },
+			new("PrinterId", NaniFieldType.CommandParameter, "printer", "StringParameter"),
 		});
 
 		AddCommand("HidePrinter", new()
@@ -170,24 +176,24 @@ public sealed class NaniTypeLayoutTable
 
 		AddCommand("SetCustomVariable", new()
 		{
-			new("Expression", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Expression", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 		});
 
 		AddCommand("BeginIf", new()
 		{
-			new("Expression", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Expression", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 		});
 		AddCommand("EndIf", new());
 		AddCommand("Else", new());
 		AddCommand("ElseIf", new()
 		{
-			new("Expression", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Expression", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 		});
 
 		AddCommand("HideUI", new()
 		{
 			new("UINames", NaniFieldType.CommandParameter, "", "StringListParameter"),
-			new("AllowToggle", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("AllowToggle", NaniFieldType.CommandParameter, "AllowToggle", "BooleanParameter"),
 			new("Duration", NaniFieldType.CommandParameter, "time", "DecimalParameter"),
 		});
 		AddCommand("ShowUI", new()
@@ -198,13 +204,13 @@ public sealed class NaniTypeLayoutTable
 		AddCommand("ShowToastUI", new()
 		{
 			new("Text", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Appearance", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Appearance", NaniFieldType.CommandParameter, "Appearance", "StringParameter"),
 			new("Duration", NaniFieldType.CommandParameter, "time", "DecimalParameter"),
 		});
 
 		AddCommand("HideActors", new()
 		{
-			new("ActorIds", NaniFieldType.CommandParameter, "", "StringListParameter"),
+			new("ActorIds", NaniFieldType.CommandParameter, "", "StringListParameter") { IsRequired = true },
 			new("Duration", NaniFieldType.CommandParameter, "time", "DecimalParameter"),
 		});
 		AddCommand("HideAllActors", new()
@@ -217,15 +223,15 @@ public sealed class NaniTypeLayoutTable
 		});
 		AddCommand("ShowActors", new()
 		{
-			new("ActorIds", NaniFieldType.CommandParameter, "", "StringListParameter"),
+			new("ActorIds", NaniFieldType.CommandParameter, "", "StringListParameter") { IsRequired = true },
 			new("Duration", NaniFieldType.CommandParameter, "time", "DecimalParameter"),
 		});
 
 		AddCommand("PlaySfx", new()
 		{
 			new("SfxPath", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Volume", NaniFieldType.CommandParameter, "", "DecimalParameter"),
-			new("Loop", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("Volume", NaniFieldType.CommandParameter, "Volume", "DecimalParameter"),
+			new("Loop", NaniFieldType.CommandParameter, "Loop", "BooleanParameter"),
 			new("FadeInDuration", NaniFieldType.CommandParameter, "fade", "DecimalParameter"),
 			new("GroupPath", NaniFieldType.CommandParameter, "group", "StringParameter"),
 			new("Duration", NaniFieldType.CommandParameter, "time", "DecimalParameter"),
@@ -233,9 +239,9 @@ public sealed class NaniTypeLayoutTable
 		AddCommand("PlaySfxFast", new()
 		{
 			new("SfxPath", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Volume", NaniFieldType.CommandParameter, "", "DecimalParameter"),
-			new("Restart", NaniFieldType.CommandParameter, "", "BooleanParameter"),
-			new("Additive", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("Volume", NaniFieldType.CommandParameter, "Volume", "DecimalParameter"),
+			new("Restart", NaniFieldType.CommandParameter, "Restart", "BooleanParameter"),
+			new("Additive", NaniFieldType.CommandParameter, "Additive", "BooleanParameter"),
 			new("GroupPath", NaniFieldType.CommandParameter, "group", "StringParameter"),
 		});
 		AddCommand("StopSfx", new()
@@ -248,8 +254,8 @@ public sealed class NaniTypeLayoutTable
 		{
 			new("BgmPath", NaniFieldType.CommandParameter, "", "StringParameter"),
 			new("IntroBgmPath", NaniFieldType.CommandParameter, "intro", "StringParameter"),
-			new("Volume", NaniFieldType.CommandParameter, "", "DecimalParameter"),
-			new("Loop", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("Volume", NaniFieldType.CommandParameter, "Volume", "DecimalParameter"),
+			new("Loop", NaniFieldType.CommandParameter, "Loop", "BooleanParameter"),
 			new("FadeInDuration", NaniFieldType.CommandParameter, "fade", "DecimalParameter"),
 			new("GroupPath", NaniFieldType.CommandParameter, "group", "StringParameter"),
 			new("Duration", NaniFieldType.CommandParameter, "time", "DecimalParameter"),
@@ -262,32 +268,32 @@ public sealed class NaniTypeLayoutTable
 
 		AddCommand("PlayVoice", new()
 		{
-			new("VoicePath", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Volume", NaniFieldType.CommandParameter, "", "DecimalParameter"),
+			new("VoicePath", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
+			new("Volume", NaniFieldType.CommandParameter, "Volume", "DecimalParameter"),
 			new("GroupPath", NaniFieldType.CommandParameter, "group", "StringParameter"),
-			new("AuthorId", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("AuthorId", NaniFieldType.CommandParameter, "AuthorId", "StringParameter"),
 		});
 		AddCommand("StopVoice", new());
 
 		AddCommand("PlayMovie", new()
 		{
-			new("MovieName", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("MovieName", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 		});
 
 		AddCommand("Spawn", new()
 		{
-			new("Path", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Params", NaniFieldType.CommandParameter, "", "StringListParameter"),
+			new("Path", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
+			new("Params", NaniFieldType.CommandParameter, "Params", "StringListParameter"),
 		});
 		AddCommand("DestroySpawned", new()
 		{
-			new("Path", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Params", NaniFieldType.CommandParameter, "", "StringListParameter"),
+			new("Path", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
+			new("Params", NaniFieldType.CommandParameter, "Params", "StringListParameter"),
 		});
 
 		AddCommand("Wait", new()
 		{
-			new("WaitMode", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("WaitMode", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 			new("OnFinished", NaniFieldType.CommandParameter, "do", "StringListParameter"),
 		});
 		AddCommand("WaitForInput", new());
@@ -304,40 +310,40 @@ public sealed class NaniTypeLayoutTable
 		AddCommand("ClearChoiceHandler", new()
 		{
 			new("HandlerId", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Hide", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("Hide", NaniFieldType.CommandParameter, "Hide", "BooleanParameter"),
 		});
 		AddCommand("Lock", new()
 		{
-			new("Id", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Id", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 		});
 		AddCommand("Unlock", new()
 		{
-			new("Id", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Id", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
 		});
 
 		AddCommand("ResetState", new()
 		{
 			new("Exclude", NaniFieldType.CommandParameter, "", "StringListParameter"),
-			new("Only", NaniFieldType.CommandParameter, "", "StringListParameter"),
+			new("Only", NaniFieldType.CommandParameter, "Only", "StringListParameter"),
 		});
 
 		AddCommand("LoadScene", new()
 		{
-			new("SceneName", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Additive", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("SceneName", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
+			new("Additive", NaniFieldType.CommandParameter, "Additive", "BooleanParameter"),
 		});
 
 		AddCommand("InputCustomVariable", new()
 		{
-			new("VariableName", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Summary", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("VariableName", NaniFieldType.CommandParameter, "", "StringParameter") { IsRequired = true },
+			new("Summary", NaniFieldType.CommandParameter, "Summary", "StringParameter"),
 			new("PredefinedValue", NaniFieldType.CommandParameter, "value", "StringParameter"),
 			new("PlayOnSubmit", NaniFieldType.CommandParameter, "play", "BooleanParameter"),
 		});
 
 		AddCommand("LipSync", new()
 		{
-			new("CharIdAndAllow", NaniFieldType.CommandParameter, "", "NamedBooleanParameter"),
+			new("CharIdAndAllow", NaniFieldType.CommandParameter, "", "NamedBooleanParameter") { IsRequired = true },
 		});
 
 		AddCommand("CameraLook", new()
@@ -345,15 +351,15 @@ public sealed class NaniTypeLayoutTable
 			new("Enable", NaniFieldType.CommandParameter, "", "BooleanParameter"),
 			new("LookZone", NaniFieldType.CommandParameter, "zone", "DecimalListParameter"),
 			new("LookSpeed", NaniFieldType.CommandParameter, "speed", "DecimalListParameter"),
-			new("Gravity", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("Gravity", NaniFieldType.CommandParameter, "Gravity", "BooleanParameter"),
 		});
 
 		AddCommand("ModifyCamera", new()
 		{
-			new("Offset", NaniFieldType.CommandParameter, "", "DecimalListParameter"),
-			new("Roll", NaniFieldType.CommandParameter, "", "DecimalParameter"),
-			new("Rotation", NaniFieldType.CommandParameter, "", "DecimalListParameter"),
-			new("Zoom", NaniFieldType.CommandParameter, "", "DecimalParameter"),
+			new("Offset", NaniFieldType.CommandParameter, "Offset", "DecimalListParameter"),
+			new("Roll", NaniFieldType.CommandParameter, "Roll", "DecimalParameter"),
+			new("Rotation", NaniFieldType.CommandParameter, "Rotation", "DecimalListParameter"),
+			new("Zoom", NaniFieldType.CommandParameter, "Zoom", "DecimalParameter"),
 			new("Orthographic", NaniFieldType.CommandParameter, "ortho", "BooleanParameter"),
 			new("ToggleTypeNames", NaniFieldType.CommandParameter, "toggle", "StringListParameter"),
 			new("SetTypeNames", NaniFieldType.CommandParameter, "set", "NamedBooleanListParameter"),
@@ -363,16 +369,16 @@ public sealed class NaniTypeLayoutTable
 
 		AddCommand("AnimateActor", new()
 		{
-			new("ActorIds", NaniFieldType.CommandParameter, "", "StringListParameter"),
-			new("Loop", NaniFieldType.CommandParameter, "", "BooleanParameter"),
-			new("Appearance", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Transition", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Visibility", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("ActorIds", NaniFieldType.CommandParameter, "", "StringListParameter") { IsRequired = true },
+			new("Loop", NaniFieldType.CommandParameter, "Loop", "BooleanParameter"),
+			new("Appearance", NaniFieldType.CommandParameter, "Appearance", "StringParameter"),
+			new("Transition", NaniFieldType.CommandParameter, "Transition", "StringParameter"),
+			new("Visibility", NaniFieldType.CommandParameter, "Visibility", "StringParameter"),
 			new("ScenePositionX", NaniFieldType.CommandParameter, "posX", "StringParameter"),
 			new("ScenePositionY", NaniFieldType.CommandParameter, "posY", "StringParameter"),
 			new("PositionZ", NaniFieldType.CommandParameter, "posZ", "StringParameter"),
-			new("Rotation", NaniFieldType.CommandParameter, "", "StringParameter"),
-			new("Scale", NaniFieldType.CommandParameter, "", "StringParameter"),
+			new("Rotation", NaniFieldType.CommandParameter, "Rotation", "StringParameter"),
+			new("Scale", NaniFieldType.CommandParameter, "Scale", "StringParameter"),
 			new("TintColor", NaniFieldType.CommandParameter, "tint", "StringParameter"),
 			new("EasingTypeName", NaniFieldType.CommandParameter, "easing", "StringParameter"),
 			new("Duration", NaniFieldType.CommandParameter, "time", "StringParameter"),
@@ -387,10 +393,10 @@ public sealed class NaniTypeLayoutTable
 
 		AddCommand("SlideActor", new()
 		{
-			new("IdAndAppearance", NaniFieldType.CommandParameter, "", "NamedStringParameter"),
+			new("IdAndAppearance", NaniFieldType.CommandParameter, "", "NamedStringParameter") { IsRequired = true },
 			new("FromPosition", NaniFieldType.CommandParameter, "from", "DecimalListParameter"),
-			new("ToPosition", NaniFieldType.CommandParameter, "to", "DecimalListParameter"),
-			new("Visible", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("ToPosition", NaniFieldType.CommandParameter, "to", "DecimalListParameter") { IsRequired = true },
+			new("Visible", NaniFieldType.CommandParameter, "Visible", "BooleanParameter"),
 			new("EasingTypeName", NaniFieldType.CommandParameter, "easing", "StringParameter"),
 			new("Duration", NaniFieldType.CommandParameter, "time", "DecimalParameter"),
 		});
@@ -418,7 +424,7 @@ public sealed class NaniTypeLayoutTable
 
 		AddCommandWithBase("ModifyCharacter", ModifyOrthoActorFields(), new()
 		{
-			new("IdAndAppearance", NaniFieldType.CommandParameter, "", "NamedStringParameter"),
+			new("IdAndAppearance", NaniFieldType.CommandParameter, "", "NamedStringParameter") { IsRequired = true },
 			new("LookDirection", NaniFieldType.CommandParameter, "look", "StringParameter"),
 			new("AvatarTexturePath", NaniFieldType.CommandParameter, "avatar", "StringParameter"),
 		});
@@ -427,7 +433,7 @@ public sealed class NaniTypeLayoutTable
 		{
 			new("IdAndAppearance", NaniFieldType.CommandParameter, "", "NamedStringParameter"),
 			new("MakeDefault", NaniFieldType.CommandParameter, "default", "BooleanParameter"),
-			new("HideOther", NaniFieldType.CommandParameter, "", "BooleanParameter"),
+			new("HideOther", NaniFieldType.CommandParameter, "HideOther", "BooleanParameter"),
 		});
 
 		AddCommand("Back", new()

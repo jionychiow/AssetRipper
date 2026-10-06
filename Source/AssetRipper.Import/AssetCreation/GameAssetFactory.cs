@@ -99,7 +99,7 @@ public sealed class GameAssetFactory : AssetFactoryBase
 			{
 				ReadOnlyArraySegment<byte> structData = assetData.Slice(reader.Position);
 				SerializeReferenceDataCache.Store(monoBehaviour, structData.ToArray(), monoBehaviour.Collection.EndianType);
-				Logger.Info(LogCategory.Import, $"MonoBehaviour '{monoBehaviour.GetBestName()}' (PathID={monoBehaviour.PathID}) has no type tree; cached {structData.Count} bytes as fallback.");
+				Logger.Info(LogCategory.Import, $"MonoBehaviour '{monoBehaviour.GetBestName()}' (PathID={monoBehaviour.PathID}) has no embedded type tree; will reconstruct from assembly ({structData.Count} bytes cached).");
 				monoBehaviour.Structure = new UnloadedStructure(monoBehaviour, assemblyManager, structData);
 			}
 		}
@@ -239,7 +239,7 @@ public sealed class GameAssetFactory : AssetFactoryBase
 
 	private static void LogMonoBehaviorReadException(IMonoBehaviour monoBehaviour, Exception ex)
 	{
-		Logger.Error(LogCategory.Import, $"Unable to read {monoBehaviour}, because script {monoBehaviour.Structure} layout mismatched binary content ({ex.GetType().Name}).");
+		Logger.Warning(LogCategory.Import, $"Unable to read {monoBehaviour}, because script {monoBehaviour.Structure} layout mismatched binary content ({ex.GetType().Name}).");
 	}
 
 	private static string MakeError_ReadException(IUnityObjectBase asset, Exception ex)

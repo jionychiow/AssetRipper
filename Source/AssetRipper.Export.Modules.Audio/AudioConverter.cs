@@ -1,6 +1,5 @@
-﻿using AssetRipper.Import.Logging;
-using NAudio.Vorbis;
-using NAudio.Wave;
+﻿using AssetRipper.Export.Modules.Audio.Fmod;
+using AssetRipper.Import.Logging;
 
 namespace AssetRipper.Export.Modules.Audio;
 
@@ -15,17 +14,13 @@ public static class AudioConverter
 			return [];
 		}
 
-		try
+		byte[]? wavData = FmodRuntimeDecoder.DecodeToWav(oggData);
+		if (wavData is not null)
 		{
-			using VorbisWaveReader vorbisStream = new VorbisWaveReader(new MemoryStream(oggData), true);
-			using MemoryStream writeStream = new MemoryStream();
-			WaveFileWriter.WriteWavFileToStream(writeStream, vorbisStream);
-			return writeStream.ToArray();
+			return wavData;
 		}
-		catch (Exception ex)
-		{
-			Logger.Error(LogCategory.Export, "Failed to convert audio from OGG to WAV", ex);
-			return [];
-		}
+
+		Logger.Error(LogCategory.Export, "Failed to convert audio from OGG to WAV via FMOD runtime decoder");
+		return [];
 	}
 }

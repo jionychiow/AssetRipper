@@ -5,6 +5,7 @@ namespace AssetRipper.SerializationLogic.Tests;
 
 public class FieldSerializationTests
 {
+#pragma warning disable CS0169
 	private class CustomMonoBehaviourWithPrivateFields : UnityEngine.MonoBehaviour
 	{
 		[UnityEngine.SerializeField]
@@ -12,6 +13,7 @@ public class FieldSerializationTests
 
 		private int field2; // Not serialized
 	}
+#pragma warning restore CS0169
 
 	[Test]
 	public void PrivateFieldsAreCorrectlyDiscriminated()

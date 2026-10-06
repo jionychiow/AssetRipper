@@ -6,16 +6,7 @@ public static class TextEscaper
 {
 	public static string Escape(string text)
 	{
-		if (string.IsNullOrEmpty(text))
-		{
-			return text ?? string.Empty;
-		}
-
-		return text
-			.Replace("[", "\\[")
-			.Replace("]", "\\]")
-			.Replace("{", "\\{")
-			.Replace("}", "\\}");
+		return text ?? string.Empty;
 	}
 
 	public static string EscapeLineStart(string text)

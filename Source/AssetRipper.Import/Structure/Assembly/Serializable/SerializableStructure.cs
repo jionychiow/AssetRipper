@@ -119,16 +119,24 @@ public sealed class SerializableStructure : UnityAssetBase, IDeepCloneable
 
 	public bool TryRead(ref EndianSpanReader reader, IMonoBehaviour monoBehaviour)
 	{
+		return TryRead(ref reader, monoBehaviour, false);
+	}
+
+	public bool TryRead(ref EndianSpanReader reader, IMonoBehaviour monoBehaviour, bool allowRemainingBytes)
+	{
 		try
 		{
 			Read(ref reader, monoBehaviour.Collection.Version, monoBehaviour.Collection.Flags);
 		}
 		catch (Exception ex)
 		{
-			LogMonoBehaviorReadException(this, ex);
+			if (!allowRemainingBytes)
+			{
+				LogMonoBehaviorReadException(this, ex);
+			}
 			return false;
 		}
-		if (reader.Position != reader.Length)
+		if (!allowRemainingBytes && reader.Position != reader.Length)
 		{
 			LogMonoBehaviourMismatch(this, reader.Position, reader.Length);
 			return false;
@@ -138,12 +146,12 @@ public sealed class SerializableStructure : UnityAssetBase, IDeepCloneable
 
 	private static void LogMonoBehaviourMismatch(SerializableStructure structure, int actual, int expected)
 	{
-		Logger.Error(LogCategory.Import, $"Unable to read MonoBehaviour Structure, because script {structure} layout mismatched binary content (read {actual} bytes, expected {expected} bytes).");
+		Logger.Warning(LogCategory.Import, $"Unable to read MonoBehaviour Structure, because script {structure} layout mismatched binary content (read {actual} bytes, expected {expected} bytes).");
 	}
 
 	private static void LogMonoBehaviorReadException(SerializableStructure structure, Exception ex)
 	{
-		Logger.Error(LogCategory.Import, $"Unable to read MonoBehaviour Structure, because script {structure} layout mismatched binary content ({ex.GetType().Name}).");
+		Logger.Warning(LogCategory.Import, $"Unable to read MonoBehaviour Structure, because script {structure} layout mismatched binary content ({ex.GetType().Name}).");
 	}
 
 	public int Depth { get; }
