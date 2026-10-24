@@ -184,18 +184,25 @@ Shader "Naninovel/RevealableTMProText" {
 				#endif
 
 				float2 wpos = input.worldPos.xy;
-				float slantOffset = tan(_CharSlantAngle * 3.14159 / 180.0) * (wpos.y - _CharClipRect.y);
-				float charLeft = _CharClipRect.x + slantOffset;
-				float charRight = _CharClipRect.z + slantOffset;
-				if (_CharFadeWidth > 0.001) {
-					float fadeL = saturate((wpos.x - charLeft) / _CharFadeWidth);
-					float fadeR = saturate((charRight - wpos.x) / _CharFadeWidth);
-					c *= fadeL * fadeR;
-				} else {
-					c *= step(charLeft, wpos.x) * step(wpos.x, charRight);
+				float charClipWidth = _CharClipRect.z - _CharClipRect.x;
+				if (_CharClipRect.z > _CharClipRect.x && charClipWidth < 60000.0) {
+					float slantOffset = tan(_CharSlantAngle * 3.14159 / 180.0) * (wpos.y - _CharClipRect.y);
+					float charLeft = _CharClipRect.x + slantOffset;
+					float charRight = _CharClipRect.z + slantOffset;
+					if (_CharFadeWidth > 0.001) {
+						float fadeL = saturate((wpos.x - charLeft) / _CharFadeWidth);
+						float fadeR = saturate((charRight - wpos.x) / _CharFadeWidth);
+						c *= fadeL * fadeR;
+					} else {
+						c *= step(charLeft, wpos.x) * step(wpos.x, charRight);
+					}
 				}
-				c *= step(_LineClipRect.x, wpos.x) * step(wpos.x, _LineClipRect.z);
-				c *= step(_LineClipRect.y, wpos.y) * step(wpos.y, _LineClipRect.w);
+				float lineClipWidth = _LineClipRect.z - _LineClipRect.x;
+				float lineClipHeight = _LineClipRect.w - _LineClipRect.y;
+				if (_LineClipRect.z > _LineClipRect.x && _LineClipRect.w > _LineClipRect.y && lineClipWidth < 60000.0 && lineClipHeight < 60000.0) {
+					c *= step(_LineClipRect.x, wpos.x) * step(wpos.x, _LineClipRect.z);
+					c *= step(_LineClipRect.y, wpos.y) * step(wpos.y, _LineClipRect.w);
+				}
 
 				#if UNITY_UI_ALPHACLIP
 				clip(c.a - 0.001);

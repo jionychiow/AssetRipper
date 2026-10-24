@@ -80,24 +80,39 @@ Shader "Naninovel/RevealableText" {
 			}
 
 			fixed4 frag(v2f IN) : SV_Target {
-				half4 color = tex2D(_MainTex, IN.texcoord) * IN.color;
+				// 2026-10-24 黑字根因修复：动态字体 Font Texture 为 Alpha8 格式，其 RGB 通道
+				// 在 GPU 采样时行为不稳定（本环境实测 RGB=0，字形覆盖度仅在 alpha 通道）。
+				// 原 tex2D*IN.color 在 RGB=0 时输出黑字。改用 alpha-as-intensity（Unity 内置
+				// 字体 shader 同款做法）：字形 alpha 决定透明度，顶点色决定颜色——对任何
+				// Alpha8 RGB 展开行为均稳健，文字颜色 = Text.color（白）。
+				half4 tex = tex2D(_MainTex, IN.texcoord);
+				half4 color;
+				color.rgb = IN.color.rgb;
+				color.a = tex.a * IN.color.a;
 				#ifdef UNITY_UI_CLIP_RECT
 				color.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
 				#endif
 
 				float2 wpos = IN.worldPosition.xy;
-				float slantOffset = tan(_CharSlantAngle * 3.14159 / 180.0) * (wpos.y - _CharClipRect.y);
-				float charLeft = _CharClipRect.x + slantOffset;
-				float charRight = _CharClipRect.z + slantOffset;
-				if (_CharFadeWidth > 0.001) {
-					float fadeL = saturate((wpos.x - charLeft) / _CharFadeWidth);
-					float fadeR = saturate((charRight - wpos.x) / _CharFadeWidth);
-					color *= fadeL * fadeR;
-				} else {
-					color *= step(charLeft, wpos.x) * step(wpos.x, charRight);
+				float charClipWidth = _CharClipRect.z - _CharClipRect.x;
+				if (_CharClipRect.z > _CharClipRect.x && charClipWidth < 60000.0) {
+					float slantOffset = tan(_CharSlantAngle * 3.14159 / 180.0) * (wpos.y - _CharClipRect.y);
+					float charLeft = _CharClipRect.x + slantOffset;
+					float charRight = _CharClipRect.z + slantOffset;
+					if (_CharFadeWidth > 0.001) {
+						float fadeL = saturate((wpos.x - charLeft) / _CharFadeWidth);
+						float fadeR = saturate((charRight - wpos.x) / _CharFadeWidth);
+						color *= fadeL * fadeR;
+					} else {
+						color *= step(charLeft, wpos.x) * step(wpos.x, charRight);
+					}
 				}
-				color *= step(_LineClipRect.x, wpos.x) * step(wpos.x, _LineClipRect.z);
-				color *= step(_LineClipRect.y, wpos.y) * step(wpos.y, _LineClipRect.w);
+				float lineClipWidth = _LineClipRect.z - _LineClipRect.x;
+				float lineClipHeight = _LineClipRect.w - _LineClipRect.y;
+				if (_LineClipRect.z > _LineClipRect.x && _LineClipRect.w > _LineClipRect.y && lineClipWidth < 60000.0 && lineClipHeight < 60000.0) {
+					color *= step(_LineClipRect.x, wpos.x) * step(wpos.x, _LineClipRect.z);
+					color *= step(_LineClipRect.y, wpos.y) * step(wpos.y, _LineClipRect.w);
+				}
 
 				#ifdef UNITY_UI_ALPHACLIP
 				clip(color.a - 0.001);

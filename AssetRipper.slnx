@@ -106,6 +106,7 @@
   <Project Path="Source/AssetRipper.Tools.FileExtractor/AssetRipper.Tools.FileExtractor.csproj" />
   <Project Path="Source/AssetRipper.Tools.JsonSerializer/AssetRipper.Tools.JsonSerializer.csproj" />
   <Project Path="Source/AssetRipper.Tools.MonoBehaviourTester/AssetRipper.Tools.MonoBehaviourTester.csproj" />
+  <Project Path="Source/AssetRipper.Tools.NaninovelAuditor/AssetRipper.Tools.NaninovelAuditor.csproj" />
   <Project Path="Source/AssetRipper.Tools.RawTextureExtractor/AssetRipper.Tools.RawTextureExtractor.csproj" />
   <Project Path="Source/AssetRipper.Tools.SystemTester/AssetRipper.Tools.SystemTester.csproj" />
   <Project Path="Source/AssetRipper.Tools.TypeTreeExtractor/AssetRipper.Tools.TypeTreeExtractor.csproj" />

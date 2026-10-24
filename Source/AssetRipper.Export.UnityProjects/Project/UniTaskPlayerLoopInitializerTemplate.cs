@@ -139,9 +139,23 @@ public static class UniTaskPlayerLoopInitializer
 	private static void OnEditorUpdate()
 	{
 		bool isPlaying = EditorApplication.isPlaying;
-		if (isPlaying && !_wasPlaying)
+		if (isPlaying != _wasPlaying)
 		{
-			InitializePlayerLoop();
+			// Play 模式进出时 Unity 重建 PlayerLoop，UniTask 注册回调被清除；
+			// PlayerLoopHelper.Init() 有 runners==null 一次性守卫不会重注册（PlayerLoopBroken 根因 2026-10-23），
+			// 必须强制调用 public Initialize(ref playerLoop) 重建注册。
+			ForceReinitializePlayerLoop();
+			_framesSinceTransition = 0;
+		}
+		else
+		{
+			_framesSinceTransition++;
+			// 自愈检测：每 30 帧验证 UniTask 注册存活性（覆盖 PlayerLoop 重建时序窗口）
+			if (_framesSinceTransition % 30 == 0 && !IsUniTaskRegisteredInPlayerLoop())
+			{
+				Debug.LogWarning("[UniTaskPL] UniTask registration lost in player loop, self-healing re-init.");
+				ForceReinitializePlayerLoop();
+			}
 		}
 		_wasPlaying = isPlaying;
 
@@ -149,10 +163,129 @@ public static class UniTaskPlayerLoopInitializer
 		ProcessFallback();
 	}
 
+	private static int _framesSinceTransition;
+
+	/// <summary>检测当前 PlayerLoop 中是否仍有 UniTaskLoopRunners 注册（存活性自愈检测）。</summary>
+	private static bool IsUniTaskRegisteredInPlayerLoop()
+	{
+		try
+		{
+			var currentLoop = UnityEngine.LowLevel.PlayerLoop.GetCurrentPlayerLoop();
+			var subSystems = currentLoop.subSystemList;
+			foreach (var sub in subSystems)
+			{
+				var subSub = sub.subSystemList;
+				if (subSub == null) continue;
+				foreach (var sub2 in subSub)
+				{
+					Type t = sub2.type;
+					if (t != null && t.Name != null && t.Name.StartsWith("UniTaskLoopRunners", StringComparison.Ordinal))
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+		catch
+		{
+			return true;
+		}
+	}
+
+	/// <summary>强制重建 UniTask PlayerLoop 注册（2026-10-23 v2：保留 pending continuation）。
+	/// 关键修正：不再清空 runners/yielders——清空会丢弃 pending 的 UniTask continuation
+	/// （Init 脚本播放链曾因此反复丢失致 ScriptPlayer 永不播放）。
+	/// 数组为 null（首次）→ 走原生 Init()；数组存在（重注册）→ 用现有数组的 Run 方法重新注入 PlayerLoop 回调。</summary>
+	private static void ForceReinitializePlayerLoop()
+	{
+		try
+		{
+			Type plt = Type.GetType("UniRx.Async.PlayerLoopHelper, UniRx.Async");
+			if (plt == null) { Debug.LogError("[UniTaskPL] ForceReinit: PlayerLoopHelper not found."); return; }
+
+			FieldInfo yf = plt.GetField("yielders", BindingFlags.NonPublic | BindingFlags.Static);
+			FieldInfo rf = plt.GetField("runners", BindingFlags.NonPublic | BindingFlags.Static);
+			Array yielders = yf?.GetValue(null) as Array;
+			Array runners = rf?.GetValue(null) as Array;
+
+			if (yielders == null || runners == null)
+			{
+				// 首次：原生 Init()（一次性守卫此时必然通过，将新建数组+注册）
+			 MethodInfo init = plt.GetMethod("Init", BindingFlags.NonPublic | BindingFlags.Static);
+				init?.Invoke(null, null);
+				Debug.Log("[UniTaskPL] ForceReinit: first-time Init() invoked.");
+			}
+			else
+			{
+				// 重注册：保留现有数组（pending continuation 不丢），仅重注入 PlayerLoop 回调
+				ReinjectWithExistingRunners(plt, yielders, runners);
+			}
+			CacheRunDelegates(plt);
+			Debug.Log("[UniTaskPL] ForceReinit OK: player loop callbacks re-registered (existing continuations preserved).");
+		}
+		catch (Exception ex) { Debug.LogError($"[UniTaskPL] ForceReinit failed: {ex}"); }
+	}
+
+	/// <summary>用现有 yielders/runners 的 Run 方法重建 PlayerLoop 注册（无损：pending continuation 保留在原数组中）。</summary>
+	private static void ReinjectWithExistingRunners(Type plt, Array yielders, Array runners)
+	{
+		Assembly uniRxAsm = plt.Assembly;
+		string[] timingSuffixes =
+		{
+			"Initialization", "EarlyUpdate", "FixedUpdate", "PreUpdate", "Update", "PreLateUpdate", "PostLateUpdate",
+		};
+
+		var currentLoop = UnityEngine.LowLevel.PlayerLoop.GetCurrentPlayerLoop();
+		var subSystems = currentLoop.subSystemList;
+		int injected = 0;
+		for (int i = 0; i < timingSuffixes.Length && i < subSystems.Length && i < yielders.Length && i < runners.Length; i++)
+		{
+			object y = yielders.GetValue(i);
+			object r = runners.GetValue(i);
+			if (y == null || r == null) continue;
+
+			MethodInfo yRun = y.GetType().GetMethod("Run");
+			MethodInfo rRun = r.GetType().GetMethod("Run");
+			if (yRun == null || rRun == null) continue;
+
+			UnityEngine.LowLevel.PlayerLoopSystem.UpdateFunction yDel = (UnityEngine.LowLevel.PlayerLoopSystem.UpdateFunction)Delegate.CreateDelegate(typeof(UnityEngine.LowLevel.PlayerLoopSystem.UpdateFunction), y, yRun);
+			UnityEngine.LowLevel.PlayerLoopSystem.UpdateFunction rDel = (UnityEngine.LowLevel.PlayerLoopSystem.UpdateFunction)Delegate.CreateDelegate(typeof(UnityEngine.LowLevel.PlayerLoopSystem.UpdateFunction), r, rRun);
+
+			// 嵌套 struct：必须用 GetNestedType（Assembly.GetType 的 "Outer.Nested" 点号语法找不到嵌套类型，
+			// 曾因 null type 导致自愈检测永远失败 → ForceReinit 死循环，2026-10-23 修复）
+			Type loopRunnersOuter = uniRxAsm.GetType("UniTaskLoopRunners");
+			Type yType = loopRunnersOuter?.GetNestedType("UniTaskLoopRunnerYield" + timingSuffixes[i]);
+			Type rType = loopRunnersOuter?.GetNestedType("UniTaskLoopRunner" + timingSuffixes[i]);
+
+			var existing = subSystems[i].subSystemList;
+			System.Collections.Generic.List<UnityEngine.LowLevel.PlayerLoopSystem> kept = new System.Collections.Generic.List<UnityEngine.LowLevel.PlayerLoopSystem>();
+			if (existing != null)
+			{
+				foreach (var ls in existing)
+				{
+					string n = ls.type?.Name;
+					if (n != null && n.StartsWith("UniTaskLoopRunner", StringComparison.Ordinal)) continue;
+					kept.Add(ls);
+				}
+			}
+			UnityEngine.LowLevel.PlayerLoopSystem[] merged = new UnityEngine.LowLevel.PlayerLoopSystem[kept.Count + 2];
+			merged[0] = new UnityEngine.LowLevel.PlayerLoopSystem { type = yType, updateDelegate = yDel };
+			merged[1] = new UnityEngine.LowLevel.PlayerLoopSystem { type = rType, updateDelegate = rDel };
+			kept.CopyTo(merged, 2);
+			subSystems[i].subSystemList = merged;
+			injected++;
+		}
+		currentLoop.subSystemList = subSystems;
+		UnityEngine.LowLevel.PlayerLoop.SetPlayerLoop(currentLoop);
+		Debug.Log($"[UniTaskPL] ReinjectWithExistingRunners: {injected} timings re-bound (continuations preserved).");
+	}
+
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 	private static void OnRuntimeInitialize()
 	{
-		InitializePlayerLoop();
+		// Play 模式启动时 PlayerLoop 已被 Unity 重建，Init() 守卫会跳过——强制重建注册
+		ForceReinitializePlayerLoop();
 		GameObject go = new GameObject("[UniTaskPL]");
 		go.AddComponent<UniTaskPlayerLoopFallbackRunner>();
 		GameObject.DontDestroyOnLoad(go);
